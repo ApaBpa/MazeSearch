@@ -1,0 +1,317 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Maze Solver</title>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 16px;
+            margin: 0;
+            padding: 24px;
+        }
+        
+        h1 {
+            color: #ffffff;
+            font-size: 20px;
+            margin-top: 16px;
+            margin-bottom: 4px;
+        }
+
+        h2 {
+            color: #ffffff;
+            font-size: 18px;
+            margin-top: 16px;
+            margin-bottom: 4px;
+        }
+
+        /* INPUTS */
+        label {
+            margin-right: 12px;
+            color: #d4d4d4;
+        }
+
+        input[type="number"], select {
+            background-color: #3c3c3c;
+            color: #d4d4d4;
+            border: 1px solid #555555;
+            padding: 4px 8px;
+            font-size: 13px;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="number"]:focus, select:focus {
+        border-color: #007acc;
+        }
+
+        /* ── Buttons ── */
+        button {
+          background-color: #0e639c;
+          color: #ffffff;
+          border: none;
+          padding: 5px 14px;
+          font-size: 13px;
+          border-radius: 3px;
+          cursor: pointer;
+          margin-right: 6px;
+        }
+
+        button:hover {
+          background-color: #1177bb;
+        }
+
+        button:disabled {
+          background-color: #3c3c3c;
+          color: #555555;
+          cursor: not-allowed;
+        }
+
+        /* ── Buttons ── */
+        button {
+          background-color: #0e639c;
+          color: #ffffff;
+          border: none;
+          padding: 5px 14px;
+          font-size: 13px;
+          border-radius: 3px;
+          cursor: pointer;
+          margin-right: 6px;
+        }
+
+        button:hover {
+          background-color: #1177bb;
+        }
+
+        button:disabled {
+          background-color: #3c3c3c;
+          color: #555555;
+          cursor: not-allowed;
+        }
+
+        /* ── Table ── */
+        table {
+          border-collapse: collapse;
+          margin-top: 8px;
+          width: 100%;
+        }
+
+        th {
+          background-color: #252526;
+          color: #9cdcfe;
+          text-align: left;
+          padding: 6px 10px;
+          font-size: 12px;
+          border-bottom: 1px solid #3c3c3c;
+        }
+
+        td {
+          padding: 5px 10px;
+          border-bottom: 1px solid #2d2d2d;
+          color: #d4d4d4;
+        }
+
+        tr:hover td {
+          background-color: #2a2d2e;
+        }
+
+        tr.fastest td {
+          color: #dcdcaa;
+        }
+    </style>
+</head>
+<body>
+
+    
+<h1>Maze Solver</h1>
+
+<!--- Generator controls-->
+<h2>Generate Maze</h2>
+<label>Width: <input type="number" id="widthInput" min="1" max="500" value="10"></label>
+<label>Height: <input type="number" id="heightInput" min="1" max="500" value="10"></label>
+<label>Generator
+    <select id="generatorSelect">
+        <option value="prim">Prim's</option>
+    </select>
+</label>
+<button id="btnGenerate">Generate</button>
+<p id="genInfo">No maze generated.</p>
+
+<!--- Solver controls-->
+<h2>Solve Maze</h2>
+<label>Algorithm
+    <select id="algorithmSelect">
+        <option value="astar">A*</option>
+    </select>
+</label>
+<button id="btnSolve" disabled>Solve</button>
+<p id="solveInfo">No maze solved.</p>
+
+<!--- Maze canvas-->
+<h2>Maze</h2>
+<canvas id="mazeCanvas" width="600" height="600"></canvas>
+
+<!-- Benchmark results -->
+<h2>Benchmark Results</h2>
+<button id="btnClear">Clear Results</button>
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Generator</th>
+      <th>Algorithm</th>
+      <th>Size</th>
+      <th>Cells</th>
+      <th>Gen (ms)</th>
+      <th>Solve (ms)</th>
+      <th>Path Length</th>
+      <th>Efficiency</th>
+    </tr>
+  </thead>
+  <tbody id="resultsBody">
+    <tr><td colspan="9" style="color:#555">No results yet.</td></tr>
+  </tbody>
+</table>
+
+<script>
+    const canvas = document.getElementById('mazeCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let mazeData = null;
+    let pathData = null;
+    let results = [];
+    let runCount = 0;
+
+// Generate maze
+document.getElementById('btnGenerate').onclick = async () => {
+    const width = document.getElementById('widthInput').value;
+    const height = document.getElementById('heightInput').value;
+    const generator = document.getElementById('generatorSelect').value;
+
+    // HTTP POST to trigger generation, then GET to fetch data
+    const res = await fetch('/generate?width=' + width + '&height=' + height, { method: 'POST' });
+    const data = await res.json();
+
+    mazeData = data;
+    pathData = null; // Clear previous path
+    document.getElementById('genInfo').textContent = `Generated ${width}x${height} maze in ${data.generationTime.toFixed(2)} ms.`;
+    document.getElementById('btnSolve').disabled = false;
+    DrawMaze();
+}
+
+// Solve maze
+document.getElementById('btnSolve').onclick = async () => {
+    const algorithm = document.getElementById('algorithmSelect').value;
+    const algorithmName = document.getElementById('algorithmSelect').selectedOptions[0].text
+    const generatorName = document.getElementById('generatorSelect').selectedOptions[0].text;
+
+    // HTTP POST to trigger solving, then GET to fetch solution
+    const res = await fetch('/solve?algorithm=' + algorithm, { method: 'POST' });
+    const data = await res.json();
+
+    pathData = data.path;
+    document.getElementById('solveInfo').textContent = `Solved maze in ${data.solvingTime.toFixed(2)} ms. Path length: ${pathData.length}.`;
+
+    runCount++;
+    results.push({
+      id: runCount, gen: generatorName, algo: algorithmName,
+      w: mazeData.width, h: mazeData.height, cells: mazeData.width * mazeData.height,
+      genMs: mazeData.generationTime, solveMs: data.solvingTime,
+      pathLen: data.path.length, efficiency: (data.path.length / (mazeData.width * mazeData.height) * 100).toFixed(2)
+    });
+
+    RenderResults();
+    DrawMaze();
+}
+
+// Clear results
+document.getElementById('btnClear').onclick = () => {
+    results = [];
+    runCount = 0;
+    RenderResults();
+}
+
+// Results rendering
+function RenderResults() {
+    const body = document.getElementById('resultsBody');
+    if(!results.length) {
+        body.innerHTML = '<tr><td colspan="9" style="color:#555">No results yet.</td></tr>';
+        return;
+    }
+    const minSolve = Math.min(...results.map(r => r.solveMs));
+    body.innerHTML = results.slice().reverse().map(r => `
+        <tr class="${r.solveMs === minSolve ? 'fastest' : ''}">
+            <td>${r.id}</td>
+            <td>${r.gen}</td>
+            <td>${r.algo}</td>
+            <td>${r.w}x${r.h}</td>
+            <td>${r.cells}</td>
+            <td>${r.genMs.toFixed(2)}</td>
+            <td>${r.solveMs.toFixed(2)}</td>
+            <td>${r.pathLen}</td>
+            <td>${r.efficiency}%</td>
+        </tr>
+    `).join('');
+}
+
+// Draw maze
+function DrawMaze() {
+    if(!mazeData) return;
+    const { width, height, passages, start, finish } = mazeData;
+    const cellSize = Math.min(canvas.width / width, canvas.height / height);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#1e1e1e';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const passageSet = new Set();
+    passages.forEach(p => {
+        passageSet.add(p.c1.x + ',' + p.c1.y + '-' + p.c2.x + ',' + p.c2.y);
+        passageSet.add(p.c2.x + ',' + p.c2.y + '-' + p.c1.x + ',' + p.c1.y);
+    });
+    const isPassage = (x1, y1, x2, y2) => passageSet.has(x1 + ',' + y1 + '-' + x2 + ',' + y2);
+
+    // Solution path
+    if(pathData && pathData.length > 0) {
+        ctx.fillStyle = '#0e3a5c';
+        pathData.forEach(c => ctx.fillRect(c.x * cellSize, c.y * cellSize, cellSize, cellSize));
+    }
+
+    // Start & Finish
+    if(start) {
+        ctx.fillStyle = '#4ec94e';
+        ctx.fillRect(start.x * cellSize, start.y * cellSize, cellSize, cellSize);
+    }
+    if(finish) {
+        ctx.fillStyle = '#e05252';
+        ctx.fillRect(finish.x * cellSize, finish.y * cellSize, cellSize, cellSize);
+    }
+
+    // Walls
+    ctx.strokeStyle = '#569cd6';
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.rect(0.5, 0.5, canvas.width - 1, canvas.height - 1);
+    for(let y = 0; y < height; y++) {
+        for(let x = 0; x < width; x++) {
+            const cellX = x * cellSize;
+            const cellY = y * cellSize;
+
+            // Right wall
+            if(x < width - 1 && !isPassage(x, y, x + 1, y)) {
+                ctx.moveTo(cellX + cellSize, cellY);
+                ctx.lineTo(cellX + cellSize, cellY + cellSize);
+            }
+            // Bottom wall
+            if(y < height - 1 && !isPassage(x, y, x, y + 1)) {
+                ctx.moveTo(cellX, cellY + cellSize);
+                ctx.lineTo(cellX + cellSize, cellY + cellSize);
+            }
+        }
+    }
+    ctx.stroke();
+}
+</script>
+</body>
+</html>
