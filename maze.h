@@ -11,6 +11,10 @@ public:
     bool inMaze = false;
     bool inFrontier = false;
 
+    bool operator==(const Cell& other) const {
+        return posX == other.posX && posY == other.posY;
+    }
+
     Cell(int posX, int posY);
 };
 

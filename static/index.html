@@ -12,14 +12,14 @@
             padding: 24px;
         }
         
-        h1 {
+        header1 {
             color: #ffffff;
             font-size: 20px;
             margin-top: 16px;
             margin-bottom: 4px;
         }
 
-        h2 {
+        header2 {
             color: #ffffff;
             font-size: 18px;
             margin-top: 16px;
@@ -119,60 +119,121 @@
         tr.fastest td {
           color: #dcdcaa;
         }
+
+        .container {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 40px; /* Add spacing between controls and maze */
+            padding: 20px;
+            border:#007acc solid 1px;
+        }
+
+        .controls {
+            flex: 1;
+            max-width: 300px;
+            margin-left: 20px; /* Add offset to the left */
+            border:#007acc solid 1px;
+        }
+
+        .header-container {
+            margin-bottom: 20px;
+        }
+
+        .maze {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 20px; /* Add offset to the right */
+            border:#007acc solid 1px;
+        }
+
+        .row {
+            display: block;
+            margin-bottom: 20px; /* Add spacing between rows */
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .controls, .maze {
+                margin: 0;
+                width: 100%;
+            }
+
+            .maze {
+                margin-top: 20px;
+            }
+        }
     </style>
 </head>
 <body>
+    <div class="container">
+        <div class="controls">
+            <div class="row">
+                <h1>Maze Solver</h1>
+            </div>
 
-    
-<h1>Maze Solver</h1>
+            <div class="row">
+                <h2>Generate Maze</h2>
+                <label>Width: <input type="number" id="widthInput" min="1" max="500" value="10"></label>
+                <label>Height: <input type="number" id="heightInput" min="1" max="500" value="10"></label>
+                <label>Generator
+                    <select id="generatorSelect">
+                        <option value="prim">Prim's</option>
+                    </select>
+                </label>
+                <button id="btnGenerate">Generate</button>
+                <p id="genInfo">No maze generated.</p>
+            </div>
 
-<!--- Generator controls-->
-<h2>Generate Maze</h2>
-<label>Width: <input type="number" id="widthInput" min="1" max="500" value="10"></label>
-<label>Height: <input type="number" id="heightInput" min="1" max="500" value="10"></label>
-<label>Generator
-    <select id="generatorSelect">
-        <option value="prim">Prim's</option>
-    </select>
-</label>
-<button id="btnGenerate">Generate</button>
-<p id="genInfo">No maze generated.</p>
+            <div class="row">
+                <h2>Solve Maze</h2>
+                <label>Algorithm
+                    <select id="algorithmSelect">
+                        <option value="astar">A*</option>
+                    </select>
+                </label>
+                <button id="btnSolve" disabled>Solve</button>
+                <p id="solveInfo">No maze solved.</p>
+            </div>
 
-<!--- Solver controls-->
-<h2>Solve Maze</h2>
-<label>Algorithm
-    <select id="algorithmSelect">
-        <option value="astar">A*</option>
-    </select>
-</label>
-<button id="btnSolve" disabled>Solve</button>
-<p id="solveInfo">No maze solved.</p>
+            <div class="row">
+                <h2>Benchmark Results</h2>
+                <button id="btnClear">Clear Results</button>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Generator</th>
+                            <th>Algorithm</th>
+                            <th>Size</th>
+                            <th>Cells</th>
+                            <th>Gen (ms)</th>
+                            <th>Solve (ms)</th>
+                            <th>Path Length</th>
+                            <th>Efficiency</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody">
+                        <tr><td colspan="9" style="color:#555">No results yet.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-<!--- Maze canvas-->
-<h2>Maze</h2>
-<canvas id="mazeCanvas" width="600" height="600"></canvas>
-
-<!-- Benchmark results -->
-<h2>Benchmark Results</h2>
-<button id="btnClear">Clear Results</button>
-<table>
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>Generator</th>
-      <th>Algorithm</th>
-      <th>Size</th>
-      <th>Cells</th>
-      <th>Gen (ms)</th>
-      <th>Solve (ms)</th>
-      <th>Path Length</th>
-      <th>Efficiency</th>
-    </tr>
-  </thead>
-  <tbody id="resultsBody">
-    <tr><td colspan="9" style="color:#555">No results yet.</td></tr>
-  </tbody>
-</table>
+        <div class="maze">
+            <div style="position: relative;">
+                <canvas id="mazeCanvas" width="600" height="600" style="position: absolute; top: 0; left: 0;"></canvas>
+                <svg id="mazeSVG" width="600" height="600" style="position: absolute; top: 0; left: 0;"></svg>
+            </div>
+        </div>
+    </div>
 
 <script>
     const canvas = document.getElementById('mazeCanvas');
@@ -274,7 +335,7 @@ function DrawMaze() {
 
     // Solution path
     if(pathData && pathData.length > 0) {
-        ctx.fillStyle = '#0e3a5c';
+        ctx.fillStyle = '#26a4a6';
         pathData.forEach(c => ctx.fillRect(c.x * cellSize, c.y * cellSize, cellSize, cellSize));
     }
 
@@ -289,8 +350,8 @@ function DrawMaze() {
     }
 
     // Walls
-    ctx.strokeStyle = '#569cd6';
-    ctx.lineWidth   = 1;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth   = 2;
     ctx.beginPath();
     ctx.rect(0.5, 0.5, canvas.width - 1, canvas.height - 1);
     for(let y = 0; y < height; y++) {
