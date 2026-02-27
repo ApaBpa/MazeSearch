@@ -13,7 +13,10 @@ Passage::Passage(Cell *c1, Cell *c2)
     : c1(c1), c2(c2) {}
 
 Maze::Maze(int sizeX, int sizeY)
-    : sizeX(sizeX), sizeY(sizeY), start(NULL), finish(NULL) {}
+: sizeX(sizeX), sizeY(sizeY), start(NULL), finish(NULL)
+{
+    MakeGrid();
+}
 
 void Maze::MakeGrid()
 {

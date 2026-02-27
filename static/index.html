@@ -229,20 +229,21 @@
 
         <div class="maze">
             <div style="position: relative;">
-                <canvas id="mazeCanvas" width="600" height="600" style="position: absolute; top: 0; left: 0;"></canvas>
-                <svg id="mazeSVG" width="600" height="600" style="position: absolute; top: 0; left: 0;"></svg>
+                <button id="prevMazeBtn" style="position:absolute;left:-40px;top:50%;transform:translateY(-50%);z-index:2;">&#8592;</button>
+                <div id="mazeScrollContainer" style="display:flex;overflow-x:auto;width:600px;height:600px;">
+                    // The main canvas is hidden since we draw each maze on its own canvas in the scroll container
+                </div>
+                <button id="nextMazeBtn" style="position:absolute;right:-40px;top:50%;transform:translateY(-50%);z-index:2;">&#8594;</button>
             </div>
-        </div>
+        <div id="mazeIndexInfo" style="text-align:center;margin-top:8px;"></div>
     </div>
 
 <script>
-    const canvas = document.getElementById('mazeCanvas');
-    const ctx = canvas.getContext('2d');
-
-    let mazeData = null;
-    let pathData = null;
-    let results = [];
+    let mazeDataArr = [];
+    let pathDataArr = [];
+    let currentMazeIdx = 0;
     let runCount = 0;
+    let results = [];
 
 // Generate maze
 document.getElementById('btnGenerate').onclick = async () => {
@@ -251,14 +252,14 @@ document.getElementById('btnGenerate').onclick = async () => {
     const generator = document.getElementById('generatorSelect').value;
 
     // HTTP POST to trigger generation, then GET to fetch data
-    const res = await fetch('/generate?width=' + width + '&height=' + height, { method: 'POST' });
+    const res = await fetch('/generate?width=' + width + '&height=' + height + "&numMazes=10", { method: 'POST' });
     const data = await res.json();
 
-    mazeData = data;
-    pathData = null; // Clear previous path
-    document.getElementById('genInfo').textContent = `Generated ${width}x${height} maze in ${data.generationTime.toFixed(2)} ms.`;
+    mazeDataArr = data.mazes || [data];
+    pathDataArr = new Array(mazeDataArr.length).fill(null);
+    document.getElementById('genInfo').textContent = `Generated ${width}x${height} maze(s) in ${data.generationTime.toFixed(2)} ms.`;
     document.getElementById('btnSolve').disabled = false;
-    DrawMaze();
+    RenderMazeScroll();
 }
 
 // Solve maze
@@ -271,19 +272,23 @@ document.getElementById('btnSolve').onclick = async () => {
     const res = await fetch('/solve?algorithm=' + algorithm, { method: 'POST' });
     const data = await res.json();
 
-    pathData = data.path;
-    document.getElementById('solveInfo').textContent = `Solved maze in ${data.solvingTime.toFixed(2)} ms. Path length: ${pathData.length}.`;
+    pathDataArr = data.paths || [];
+    document.getElementById('solveInfo').textContent = `Solved maze in ${data.solvingTime.toFixed(2)} ms. Path length: ${pathDataArr[0].length}.`;
 
-    runCount++;
-    results.push({
-      id: runCount, gen: generatorName, algo: algorithmName,
-      w: mazeData.width, h: mazeData.height, cells: mazeData.width * mazeData.height,
-      genMs: mazeData.generationTime, solveMs: data.solvingTime,
-      pathLen: data.path.length, efficiency: (data.path.length / (mazeData.width * mazeData.height) * 100).toFixed(2)
-    });
+    for(let i = 0; i < mazeDataArr.length; i++){
+        runCount++;
+        results.push({
+            id: runCount, gen: generatorName, algo: algorithmName,
+            w: mazeDataArr[i].width, h: mazeDataArr[i].height, 
+            cells: mazeDataArr[i].width * mazeDataArr[i].height,
+            genMs: mazeDataArr[i].generationTime,
+            solveMs: data.solvingTime,
+            pathLen: pathDataArr[i].length,
+            efficiency: ((pathDataArr[i].length / (mazeDataArr[i].width * mazeDataArr[i].height)) * 100).toFixed(2)
+        });
+    }
 
-    RenderResults();
-    DrawMaze();
+    RenderMazeScroll();
 }
 
 // Clear results
@@ -291,6 +296,22 @@ document.getElementById('btnClear').onclick = () => {
     results = [];
     runCount = 0;
     RenderResults();
+}
+
+function RenderMazeScroll() {
+    const container = document.getElementById('mazeScrollContainer');
+    container.innerHTML = '';
+    mazeDataArr.forEach((mazeData, idx) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 600;
+        canvas.height = 600;
+        canvas.style.marginRight = '8px';
+        canvas.style.border = idx === currentMazeIdx ? '2px solid #007acc' : '1px solid #555';
+        container.appendChild(canvas);
+        DrawMaze(canvas, mazeData, pathDataArr[idx]);
+    });
+    container.scrollLeft = currentMazeIdx * 608;
+    document.getElementById('mazeIndexInfo').textContent = `Maze ${currentMazeIdx+1} of ${mazeDataArr.length}`;
 }
 
 // Results rendering
@@ -317,8 +338,9 @@ function RenderResults() {
 }
 
 // Draw maze
-function DrawMaze() {
+function DrawMaze(canvas, mazeData, pathData) {
     if(!mazeData) return;
+    const ctx = canvas.getContext('2d');
     const { width, height, passages, start, finish } = mazeData;
     const cellSize = Math.min(canvas.width / width, canvas.height / height);
 
@@ -336,6 +358,7 @@ function DrawMaze() {
     // Solution path
     if(pathData && pathData.length > 0) {
         ctx.fillStyle = '#26a4a6';
+        console.log('Drawing path with', pathData.length, 'cells');
         pathData.forEach(c => ctx.fillRect(c.x * cellSize, c.y * cellSize, cellSize, cellSize));
     }
 
@@ -373,6 +396,20 @@ function DrawMaze() {
     }
     ctx.stroke();
 }
+
+document.getElementById('prevMazeBtn').onclick = () => {
+    if(currentMazeIdx > 0) {
+        currentMazeIdx--;
+        RenderMazeScroll();
+    }
+};
+
+document.getElementById('nextMazeBtn').onclick = () => {
+    if(currentMazeIdx < mazeDataArr.length - 1) {
+        currentMazeIdx++;
+        RenderMazeScroll();
+    };
+};
 </script>
 </body>
 </html>

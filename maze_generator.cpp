@@ -1,5 +1,6 @@
 #include "maze_generator.h"
 #include "maze.h"
+#include <stdexcept>
 #include <random>
 
 static const int dirX[4] = { 1, 0, -1, 0 };
@@ -14,6 +15,11 @@ MazeGenerator::MazeGenerator()
 /// @brief Generate maze with prim's algorithm https://weblog.jamisbuck.org/2011/1/10/maze-generation-prim-s-algorithm
 void MazeGenerator::GeneratePrim(Maze &maze)
 {
+    printf("Generating maze with Prim's algorithm...\n");
+    if (maze.width() < 1 || maze.height() < 1 || maze.cells.empty() || maze.cells[0].empty()) {
+        throw std::runtime_error("Maze dimensions or cells not initialized");
+    }
+
     std::vector<Cell*> frontier;
 
     // Pick random starting position

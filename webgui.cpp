@@ -116,10 +116,11 @@ static std::string PathsToJSON(const std::vector<std::vector<Cell *>>& paths, do
 }
 
 // Request handler for maze generation
-void RegisterGenerateHandler (httplib::Server& server, unsigned int num_mazes){
-    server.Post("/generate", [num_mazes](const httplib::Request& req, httplib::Response& res){
+void RegisterGenerateHandler (httplib::Server& server){
+    server.Post("/generate", [](const httplib::Request& req, httplib::Response& res){
         int width = std::max(2, std::min(500, GetIntParam(req, "width", 20)));
         int height = std::max(2, std::min(500, GetIntParam(req, "height", 20)));
+        int num_mazes = std::max(1, std::min(100, GetIntParam(req, "numMazes", 1)));
         std::lock_guard<std::mutex> lock(maze_mutex);
 
         if(num_mazes == 0){
@@ -173,7 +174,7 @@ void StartWebServer(){
     // Import HTML files from "/static"
     server.set_mount_point("/", "./static");
     
-    RegisterGenerateHandler(server, 1);
+    RegisterGenerateHandler(server);
 
     RegisterSolveHandler(server);
 

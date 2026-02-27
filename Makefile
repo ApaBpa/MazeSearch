@@ -6,7 +6,8 @@ LDFLAGS := -lpthread
 
 SRC := $(wildcard *.cpp)
 
-SEQ_TARGET := maze
+# Target file names
+SEQ_TARGET := maze_seq
 OMP_TARGET := maze_omp
 MPI_TARGET := maze_mpi
 
