@@ -3,6 +3,7 @@
 #include "maze.h"
 #include "maze_generator.h"
 #include "maze_solver.h"
+#include <fstream>
 #include <chrono>
 #include <sstream>
 #include <mutex>
@@ -157,7 +158,7 @@ void RegisterSolveHandler (httplib::Server& server){
             return;
         }
 
-        auto t0 = std::chrono::high_resolution_clock::now();
+        auto t0 = std::chrono::high_resolution_clock::now();    // Kosher??
 
         std::vector<std::vector<Cell *>> paths = SOLVE(mazes);
 
@@ -170,6 +171,17 @@ void RegisterSolveHandler (httplib::Server& server){
 
 void StartWebServer(){
     httplib::Server server;
+
+    server.Get("/icons/favicon.ico", [](const httplib::Request&, httplib::Response& res) {
+        std::ifstream f("./icons/favicon.ico", std::ios::binary);
+        if (!f) { res.status = 404; return; }
+        std::string bytes((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+        res.set_content(std::move(bytes), "image/x-icon");
+    });
+
+    server.Get("/favicon.ico", [](const httplib::Request&, httplib::Response& res) {
+        res.set_redirect("/icons/favicon.ico");
+    });
 
     // Import HTML files from "/static"
     server.set_mount_point("/", "./static");

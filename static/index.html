@@ -1,5 +1,6 @@
 <html lang="en">
 <head>
+    <link rel="icon" href="/icons/favicon.ico?v=2" type="image/x-icon">
     <meta charset="UTF-8">
     <title>Maze Solver</title>
     <style>
@@ -26,7 +27,6 @@
             margin-bottom: 4px;
         }
 
-        /* INPUTS */
         label {
             margin-right: 12px;
             color: #d4d4d4;
@@ -46,7 +46,6 @@
         border-color: #007acc;
         }
 
-        /* ── Buttons ── */
         button {
           background-color: #0e639c;
           color: #ffffff;
@@ -68,29 +67,6 @@
           cursor: not-allowed;
         }
 
-        /* ── Buttons ── */
-        button {
-          background-color: #0e639c;
-          color: #ffffff;
-          border: none;
-          padding: 5px 14px;
-          font-size: 13px;
-          border-radius: 3px;
-          cursor: pointer;
-          margin-right: 6px;
-        }
-
-        button:hover {
-          background-color: #1177bb;
-        }
-
-        button:disabled {
-          background-color: #3c3c3c;
-          color: #555555;
-          cursor: not-allowed;
-        }
-
-        /* ── Table ── */
         table {
           border-collapse: collapse;
           margin-top: 8px;
@@ -120,34 +96,8 @@
           color: #dcdcaa;
         }
 
-        .container {
-            display: flex;
-            flex-direction: row;
-            align-items: flex-start;
-            justify-content: center;
-            gap: 40px; /* Add spacing between controls and maze */
-            padding: 20px;
-            border:#007acc solid 1px;
-        }
-
-        .controls {
-            flex: 1;
-            max-width: 300px;
-            margin-left: 20px; /* Add offset to the left */
-            border:#007acc solid 1px;
-        }
-
         .header-container {
             margin-bottom: 20px;
-        }
-
-        .maze {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-right: 20px; /* Add offset to the right */
-            border:#007acc solid 1px;
         }
 
         .row {
@@ -155,20 +105,50 @@
             margin-bottom: 20px; /* Add spacing between rows */
         }
 
-        @media (max-width: 768px) {
-            .container {
-                flex-direction: column;
-                align-items: center;
-            }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 2fr; /* Controls take 1/3, Maze takes 2/3 */
+            gap: 24px;                      /* Add spacing between grid items (controls and maze) */
+            min-height: calc(100vh - 48px); /* Full height minus padding */
+            align-items: stretch;           /* Make rows stretch to fill height */
+            padding: 12px;
+            border: #007acc solid 1px;
+        }
 
-            .controls, .maze {
-                margin: 0;
-                width: 100%;
-            }
+        .controls {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            padding: 16px;
+            border: #007acc solid 1px;
+            box-sizing: border-box;
+        }
 
-            .maze {
-                margin-top: 20px;
-            }
+        .maze {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            border: #007acc solid 1px;
+            box-sizing: border-box;
+        }
+
+        #mazeViewport {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #mazeCanvas {
+            width: min(100%, 720px);
+            aspect-ratio: 1 / 1;
+            border: 2px solid #007acc;
+            background-color: #1e1e1e;
         }
     </style>
 </head>
@@ -230,9 +210,7 @@
         <div class="maze">
             <div style="position: relative;">
                 <button id="prevMazeBtn" style="position:absolute;left:-40px;top:50%;transform:translateY(-50%);z-index:2;">&#8592;</button>
-                <div id="mazeScrollContainer" style="display:flex;overflow-x:auto;width:600px;height:600px;">
-                    // The main canvas is hidden since we draw each maze on its own canvas in the scroll container
-                </div>
+                <canvas id="mazeCanvas" width="600" height="600"></canvas>
                 <button id="nextMazeBtn" style="position:absolute;right:-40px;top:50%;transform:translateY(-50%);z-index:2;">&#8594;</button>
             </div>
         <div id="mazeIndexInfo" style="text-align:center;margin-top:8px;"></div>
@@ -244,6 +222,8 @@
     let currentMazeIdx = 0;
     let runCount = 0;
     let results = [];
+    let pendingResultIndexes = [];
+    const fmtMs = (v) => Number.isFinite(v) ? v.toFixed(2) : '-';
 
 // Generate maze
 document.getElementById('btnGenerate').onclick = async () => {
@@ -257,8 +237,29 @@ document.getElementById('btnGenerate').onclick = async () => {
 
     mazeDataArr = data.mazes || [data];
     pathDataArr = new Array(mazeDataArr.length).fill(null);
-    document.getElementById('genInfo').textContent = `Generated ${width}x${height} maze(s) in ${data.generationTime.toFixed(2)} ms.`;
+    currentMazeIdx = 0;
+
+    pendingResultIndexes = [];
+    for(let i = 0; i < mazeDataArr.length; i++){
+        runCount++;
+        results.push({
+            id: runCount,
+            gen: generator,
+            algo: 'Pending',
+            w: mazeDataArr[i].width,
+            h: mazeDataArr[i].height,
+            cells: mazeDataArr[i].width * mazeDataArr[i].height,
+            genMs: Number(mazeDataArr[i].generationTime) ?? data.generationTime / mazeDataArr.length,
+            solveMs: null,
+            pathLen: null,
+            efficiency: null
+        });
+        pendingResultIndexes.push(results.length - 1);
+    }
+
+    document.getElementById('genInfo').textContent = `Generated ${width}x${height} maze(s) in ${fmtMs(Number(data.generationTime))} ms.`;
     document.getElementById('btnSolve').disabled = false;
+    RenderResults();
     RenderMazeScroll();
 }
 
@@ -273,21 +274,38 @@ document.getElementById('btnSolve').onclick = async () => {
     const data = await res.json();
 
     pathDataArr = data.paths || [];
-    document.getElementById('solveInfo').textContent = `Solved maze in ${data.solvingTime.toFixed(2)} ms. Path length: ${pathDataArr[0].length}.`;
+    currentMazeIdx = 0;
+    const firstPathLength = (pathDataArr[0] || []).length;
+    document.getElementById('solveInfo').textContent = `Solved maze in ${fmtMs(Number(data.solvingTime))} ms. Path length: ${firstPathLength}.`;
 
-    for(let i = 0; i < mazeDataArr.length; i++){
-        runCount++;
-        results.push({
-            id: runCount, gen: generatorName, algo: algorithmName,
-            w: mazeDataArr[i].width, h: mazeDataArr[i].height, 
-            cells: mazeDataArr[i].width * mazeDataArr[i].height,
-            genMs: mazeDataArr[i].generationTime,
-            solveMs: data.solvingTime,
-            pathLen: pathDataArr[i].length,
-            efficiency: ((pathDataArr[i].length / (mazeDataArr[i].width * mazeDataArr[i].height)) * 100).toFixed(2)
-        });
+    if (pendingResultIndexes.length === mazeDataArr.length) {
+        for(let i = 0; i < mazeDataArr.length; i++){
+            const resultIndex = pendingResultIndexes[i];
+            const pathLength = (pathDataArr[i] || []).length;
+            results[resultIndex].gen = generatorName;
+            results[resultIndex].algo = algorithmName;
+            results[resultIndex].solveMs = data.solvingTime;
+            results[resultIndex].pathLen = pathLength;
+            results[resultIndex].efficiency = ((pathLength / (mazeDataArr[i].width * mazeDataArr[i].height)) * 100).toFixed(2);
+        }
+        pendingResultIndexes = [];
+    } else {
+        for(let i = 0; i < mazeDataArr.length; i++){
+            const pathLength = (pathDataArr[i] || []).length;
+            runCount++;
+            results.push({
+                id: runCount, gen: generatorName, algo: algorithmName,
+                w: mazeDataArr[i].width, h: mazeDataArr[i].height,
+                cells: mazeDataArr[i].width * mazeDataArr[i].height,
+                genMs: mazeDataArr[i].generationTime,
+                solveMs: data.solvingTime,
+                pathLen: pathLength,
+                efficiency: ((pathLength / (mazeDataArr[i].width * mazeDataArr[i].height)) * 100).toFixed(2)
+            });
+        }
     }
 
+    RenderResults();
     RenderMazeScroll();
 }
 
@@ -295,23 +313,30 @@ document.getElementById('btnSolve').onclick = async () => {
 document.getElementById('btnClear').onclick = () => {
     results = [];
     runCount = 0;
+    pendingResultIndexes = [];
     RenderResults();
 }
 
 function RenderMazeScroll() {
-    const container = document.getElementById('mazeScrollContainer');
-    container.innerHTML = '';
-    mazeDataArr.forEach((mazeData, idx) => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 600;
-        canvas.height = 600;
-        canvas.style.marginRight = '8px';
-        canvas.style.border = idx === currentMazeIdx ? '2px solid #007acc' : '1px solid #555';
-        container.appendChild(canvas);
-        DrawMaze(canvas, mazeData, pathDataArr[idx]);
-    });
-    container.scrollLeft = currentMazeIdx * 608;
-    document.getElementById('mazeIndexInfo').textContent = `Maze ${currentMazeIdx+1} of ${mazeDataArr.length}`;
+    const canvas = document.getElementById('mazeCanvas');
+    const prevBtn = document.getElementById('prevMazeBtn');
+    const nextBtn = document.getElementById('nextMazeBtn');
+    const info = document.getElementById('mazeIndexInfo');
+
+    if (!mazeDataArr.length) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        info.textContent = 'No maze generated.';
+        prevBtn.disabled = true;
+        nextBtn.disabled = true;
+        return;
+    }
+
+    currentMazeIdx = Math.max(0, Math.min(currentMazeIdx, mazeDataArr.length - 1));
+    DrawMaze(canvas, mazeDataArr[currentMazeIdx], pathDataArr[currentMazeIdx]);
+    info.textContent = `Maze ${currentMazeIdx+1} of ${mazeDataArr.length}`;
+    prevBtn.disabled = currentMazeIdx === 0;
+    nextBtn.disabled = currentMazeIdx === mazeDataArr.length - 1;
 }
 
 // Results rendering
@@ -321,18 +346,19 @@ function RenderResults() {
         body.innerHTML = '<tr><td colspan="9" style="color:#555">No results yet.</td></tr>';
         return;
     }
-    const minSolve = Math.min(...results.map(r => r.solveMs));
+    const solvedResults = results.filter(r => typeof r.solveMs === 'number');
+    const minSolve = solvedResults.length ? Math.min(...solvedResults.map(r => r.solveMs)) : null;
     body.innerHTML = results.slice().reverse().map(r => `
-        <tr class="${r.solveMs === minSolve ? 'fastest' : ''}">
+        <tr class="${minSolve !== null && r.solveMs === minSolve ? 'fastest' : ''}">
             <td>${r.id}</td>
             <td>${r.gen}</td>
             <td>${r.algo}</td>
             <td>${r.w}x${r.h}</td>
             <td>${r.cells}</td>
-            <td>${r.genMs.toFixed(2)}</td>
-            <td>${r.solveMs.toFixed(2)}</td>
-            <td>${r.pathLen}</td>
-            <td>${r.efficiency}%</td>
+            <td>${fmtMs(Number(r.genMs))}</td>
+            <td>${fmtMs(Number(r.solveMs))}</td>
+            <td>${r.pathLen === null ? '-' : r.pathLen}</td>
+            <td>${r.efficiency === null ? '-' : r.efficiency + '%'}</td>
         </tr>
     `).join('');
 }
@@ -342,7 +368,7 @@ function DrawMaze(canvas, mazeData, pathData) {
     if(!mazeData) return;
     const ctx = canvas.getContext('2d');
     const { width, height, passages, start, finish } = mazeData;
-    const cellSize = Math.min(canvas.width / width, canvas.height / height);
+    const cell_size = Math.min(canvas.width / width, canvas.height / height);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#1e1e1e';
@@ -359,38 +385,38 @@ function DrawMaze(canvas, mazeData, pathData) {
     if(pathData && pathData.length > 0) {
         ctx.fillStyle = '#26a4a6';
         console.log('Drawing path with', pathData.length, 'cells');
-        pathData.forEach(c => ctx.fillRect(c.x * cellSize, c.y * cellSize, cellSize, cellSize));
+        pathData.forEach(c => ctx.fillRect(c.x * cell_size, c.y * cell_size, cell_size, cell_size));
     }
 
     // Start & Finish
     if(start) {
         ctx.fillStyle = '#4ec94e';
-        ctx.fillRect(start.x * cellSize, start.y * cellSize, cellSize, cellSize);
+        ctx.fillRect(start.x * cell_size, start.y * cell_size, cell_size, cell_size);
     }
     if(finish) {
         ctx.fillStyle = '#e05252';
-        ctx.fillRect(finish.x * cellSize, finish.y * cellSize, cellSize, cellSize);
+        ctx.fillRect(finish.x * cell_size, finish.y * cell_size, cell_size, cell_size);
     }
 
     // Walls
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth   = 2;
+    ctx.lineWidth   = 4;
     ctx.beginPath();
     ctx.rect(0.5, 0.5, canvas.width - 1, canvas.height - 1);
     for(let y = 0; y < height; y++) {
         for(let x = 0; x < width; x++) {
-            const cellX = x * cellSize;
-            const cellY = y * cellSize;
+            const cell_x = x * cell_size;
+            const cell_y = y * cell_size;
 
             // Right wall
             if(x < width - 1 && !isPassage(x, y, x + 1, y)) {
-                ctx.moveTo(cellX + cellSize, cellY);
-                ctx.lineTo(cellX + cellSize, cellY + cellSize);
+                ctx.moveTo(cell_x + cell_size, cell_y);
+                ctx.lineTo(cell_x + cell_size, cell_y + cell_size);
             }
             // Bottom wall
             if(y < height - 1 && !isPassage(x, y, x, y + 1)) {
-                ctx.moveTo(cellX, cellY + cellSize);
-                ctx.lineTo(cellX + cellSize, cellY + cellSize);
+                ctx.moveTo(cell_x, cell_y + cell_size);
+                ctx.lineTo(cell_x + cell_size, cell_y + cell_size);
             }
         }
     }

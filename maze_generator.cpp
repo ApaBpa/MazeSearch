@@ -13,6 +13,7 @@ MazeGenerator::MazeGenerator()
 }
 
 /// @brief Generate maze with prim's algorithm https://weblog.jamisbuck.org/2011/1/10/maze-generation-prim-s-algorithm
+/// @param maze Empty maze with cells. The function will fill this maze with passages, start and finish.
 void MazeGenerator::GeneratePrim(Maze &maze)
 {
     printf("Generating maze with Prim's algorithm...\n");
@@ -41,7 +42,7 @@ void MazeGenerator::GeneratePrim(Maze &maze)
         Cell *nextF = frontier[idx]; // Frontier cell
 
         // Find neighbours of current frontier cell and update who the neighbours are
-        std::vector<Cell *> mazeNeighbours;
+        std::vector<Cell *> maze_neigbours;
         for (int dir = 0; dir < 4; dir++)
         {
             int nx = nextF->posX + dirX[dir];
@@ -53,14 +54,14 @@ void MazeGenerator::GeneratePrim(Maze &maze)
             Cell *neighbour = &maze.cells[ny][nx];
             if (neighbour->inMaze)
             {
-                mazeNeighbours.emplace_back(neighbour);
+                maze_neigbours.emplace_back(neighbour);
             }
         }
 
-        if (!mazeNeighbours.empty())
+        if (!maze_neigbours.empty())
         {
-            std::uniform_int_distribution<int> randN(0, mazeNeighbours.size() - 1);
-            Cell *neighbour = mazeNeighbours[randN(rng)];
+            std::uniform_int_distribution<int> randN(0, maze_neigbours.size() - 1);
+            Cell *neighbour = maze_neigbours[randN(rng)];
 
             maze.MakePassage(nextF, neighbour);
 

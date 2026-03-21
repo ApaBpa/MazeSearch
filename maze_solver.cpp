@@ -1,8 +1,13 @@
 #include "maze_solver.h"
 #include "maze.h"
-#include "omp.h"
-#include "mpi.h"
 #include "stdio.h"
+
+#ifdef USE_OMP
+#include "omp.h"
+#endif
+#ifdef USE_MPI
+#include "mpi.h"
+#endif
 
 #include <algorithm>
 #include <unordered_map>
@@ -175,5 +180,12 @@ std::vector<std::vector<Cell *>> SolveMPI(std::vector<Maze>& mazes){
 
         return {};
     }
+}
+#endif
+
+#ifdef USE_OMP
+std::vector<std::vector<Cell *>> SolveOMP(std::vector<Maze>& mazes){
+    std::printf("Not implemented yet\n");
+    return {};
 }
 #endif
