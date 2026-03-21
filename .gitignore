@@ -1,0 +1,13 @@
+dependencies/
+*.o
+*.exe
+*.out
+.dll
+.gitattributes
+maze_mpi
+maze_omp
+maze_seq
+githubssh
+githubssh.pub
+*.pem
+*.key
