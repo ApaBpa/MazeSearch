@@ -189,3 +189,29 @@ std::vector<std::vector<Cell *>> SolveOMP(std::vector<Maze>& mazes){
     return {};
 }
 #endif
+
+/// @brief Helper to check if paths are equal
+/// @return True if paths are equal, false otherwise
+bool PathEqual(const std::vector<Cell*>& a, const std::vector<Cell*>& b){
+    if (a.size() != b.size()) return false;
+    else if (a == b) return true;   // Same pointer
+
+    for (size_t i = 0; i < a.size(); i++){
+        if (!a[i] || !b[i]){    // Nullptr check
+            if (a[i] != b[i]) return false;
+            continue;
+        }
+        if (a[i]->posX != b[i]->posX || a[i]->posY != b[i]->posY) return false;
+    }
+    return true;
+}
+
+/// @brief Wrapper to check if path vectors are equal
+/// @return True if paths are equal, false otherwise
+bool PathsEqual(const std::vector<std::vector<Cell*>>& a, const std::vector<std::vector<Cell*>>& b){
+    if (a.size() != b.size()) return false;
+    for (size_t i = 0; i < a.size(); i++){
+        if (!PathEqual(a[i], b[i])) return false;
+    }
+    return true;
+}

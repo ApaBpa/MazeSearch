@@ -1,4 +1,5 @@
 <html lang="en">
+
 <head>
     <link rel="icon" href="/icons/favicon.ico?v=2" type="image/x-icon">
     <meta charset="UTF-8">
@@ -12,7 +13,7 @@
             margin: 0;
             padding: 24px;
         }
-        
+
         header1 {
             color: #ffffff;
             font-size: 20px;
@@ -32,7 +33,8 @@
             color: #d4d4d4;
         }
 
-        input[type="number"], select {
+        input[type="number"],
+        select {
             background-color: #3c3c3c;
             color: #d4d4d4;
             border: 1px solid #555555;
@@ -42,58 +44,59 @@
             outline: none;
         }
 
-        input[type="number"]:focus, select:focus {
-        border-color: #007acc;
+        input[type="number"]:focus,
+        select:focus {
+            border-color: #007acc;
         }
 
         button {
-          background-color: #0e639c;
-          color: #ffffff;
-          border: none;
-          padding: 5px 14px;
-          font-size: 13px;
-          border-radius: 3px;
-          cursor: pointer;
-          margin-right: 6px;
+            background-color: #0e639c;
+            color: #ffffff;
+            border: none;
+            padding: 5px 14px;
+            font-size: 13px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-right: 16px;
         }
 
         button:hover {
-          background-color: #1177bb;
+            background-color: #1177bb;
         }
 
         button:disabled {
-          background-color: #3c3c3c;
-          color: #555555;
-          cursor: not-allowed;
+            background-color: #3c3c3c;
+            color: #555555;
+            cursor: not-allowed;
         }
 
         table {
-          border-collapse: collapse;
-          margin-top: 8px;
-          width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+            width: 100%;
         }
 
         th {
-          background-color: #252526;
-          color: #9cdcfe;
-          text-align: left;
-          padding: 6px 10px;
-          font-size: 12px;
-          border-bottom: 1px solid #3c3c3c;
+            background-color: #252526;
+            color: #9cdcfe;
+            text-align: left;
+            padding: 6px 10px;
+            font-size: 12px;
+            border-bottom: 1px solid #3c3c3c;
         }
 
         td {
-          padding: 5px 10px;
-          border-bottom: 1px solid #2d2d2d;
-          color: #d4d4d4;
+            padding: 5px 10px;
+            border-bottom: 1px solid #2d2d2d;
+            color: #d4d4d4;
         }
 
         tr:hover td {
-          background-color: #2a2d2e;
+            background-color: #2a2d2e;
         }
 
         tr.fastest td {
-          color: #dcdcaa;
+            color: #dcdcaa;
         }
 
         .header-container {
@@ -102,15 +105,20 @@
 
         .row {
             display: block;
-            margin-bottom: 20px; /* Add spacing between rows */
+            margin-bottom: 20px;
+            /* Add spacing between rows */
         }
 
         .container {
             display: grid;
-            grid-template-columns: 1fr 2fr; /* Controls take 1/3, Maze takes 2/3 */
-            gap: 24px;                      /* Add spacing between grid items (controls and maze) */
-            min-height: calc(100vh - 48px); /* Full height minus padding */
-            align-items: stretch;           /* Make rows stretch to fill height */
+            grid-template-columns: 1fr 2fr;
+            /* Controls take 1/3, Maze takes 2/3 */
+            gap: 24px;
+            /* Add spacing between grid items (controls and maze) */
+            min-height: calc(100vh - 48px);
+            /* Full height minus padding */
+            align-items: stretch;
+            /* Make rows stretch to fill height */
             padding: 12px;
             border: #007acc solid 1px;
         }
@@ -129,11 +137,35 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+
+            justify-content: flex-start;
             align-items: center;
+
             padding: 16px;
             border: #007acc solid 1px;
             box-sizing: border-box;
+        }
+
+        .mazeWrapper {
+            position: relative;
+            display: inline-block;
+            line-height: 0;
+        }
+
+        .nav-btn {
+            position: absolute;
+            top: 50%;
+            margin: 0;
+            z-index: 2;
+        }
+
+        .nav-btn.prev {
+            left: 0px;
+            transform: translate(-120%, -50%);
+        }
+        .nav-btn.next {
+            right: 0px;
+            transform: translate(120%, -50%);
         }
 
         #mazeViewport {
@@ -145,13 +177,11 @@
         }
 
         #mazeCanvas {
-            width: min(100%, 720px);
-            aspect-ratio: 1 / 1;
-            border: 2px solid #007acc;
-            background-color: #1e1e1e;
+            display: block;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="controls">
@@ -201,154 +231,157 @@
                         </tr>
                     </thead>
                     <tbody id="resultsBody">
-                        <tr><td colspan="9" style="color:#555">No results yet.</td></tr>
+                        <tr>
+                            <td colspan="9" style="color:#555">No results yet.</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
         <div class="maze">
-            <div style="position: relative;">
-                <button id="prevMazeBtn" style="position:absolute;left:-40px;top:50%;transform:translateY(-50%);z-index:2;">&#8592;</button>
+            <div class="mazeWrapper">
+                <button id="prevMazeBtn" class="nav-btn prev">&#8592;</button>
                 <canvas id="mazeCanvas" width="600" height="600"></canvas>
-                <button id="nextMazeBtn" style="position:absolute;right:-40px;top:50%;transform:translateY(-50%);z-index:2;">&#8594;</button>
+                <button id="nextMazeBtn" class="nav-btn next">&#8594;</button>
             </div>
-        <div id="mazeIndexInfo" style="text-align:center;margin-top:8px;"></div>
+            <div id="mazeIndexInfo" style="text-align:center;margin-top:8px;"></div>
+        </div>
     </div>
 
-<script>
-    let mazeDataArr = [];
-    let pathDataArr = [];
-    let currentMazeIdx = 0;
-    let runCount = 0;
-    let results = [];
-    let pendingResultIndexes = [];
-    const fmtMs = (v) => Number.isFinite(v) ? v.toFixed(2) : '-';
+    <script>
+        let mazeDataArr = [];
+        let pathDataArr = [];
+        let currentMazeIdx = 0;
+        let runCount = 0;
+        let results = [];
+        let pendingResultIndexes = [];
+        const fmtMs = (v) => Number.isFinite(v) ? v.toFixed(2) : '-';
 
-// Generate maze
-document.getElementById('btnGenerate').onclick = async () => {
-    const width = document.getElementById('widthInput').value;
-    const height = document.getElementById('heightInput').value;
-    const generator = document.getElementById('generatorSelect').value;
+        // Generate maze
+        document.getElementById('btnGenerate').onclick = async () => {
+            const width = document.getElementById('widthInput').value;
+            const height = document.getElementById('heightInput').value;
+            const generator = document.getElementById('generatorSelect').value;
 
-    // HTTP POST to trigger generation, then GET to fetch data
-    const res = await fetch('/generate?width=' + width + '&height=' + height + "&numMazes=10", { method: 'POST' });
-    const data = await res.json();
+            // HTTP POST to trigger generation, then GET to fetch data
+            const res = await fetch('/generate?width=' + width + '&height=' + height + "&numMazes=10", { method: 'POST' });
+            const data = await res.json();
 
-    mazeDataArr = data.mazes || [data];
-    pathDataArr = new Array(mazeDataArr.length).fill(null);
-    currentMazeIdx = 0;
+            mazeDataArr = data.mazes || [data];
+            pathDataArr = new Array(mazeDataArr.length).fill(null);
+            currentMazeIdx = 0;
 
-    pendingResultIndexes = [];
-    for(let i = 0; i < mazeDataArr.length; i++){
-        runCount++;
-        results.push({
-            id: runCount,
-            gen: generator,
-            algo: 'Pending',
-            w: mazeDataArr[i].width,
-            h: mazeDataArr[i].height,
-            cells: mazeDataArr[i].width * mazeDataArr[i].height,
-            genMs: Number(mazeDataArr[i].generationTime) ?? data.generationTime / mazeDataArr.length,
-            solveMs: null,
-            pathLen: null,
-            efficiency: null
-        });
-        pendingResultIndexes.push(results.length - 1);
-    }
+            pendingResultIndexes = [];
+            for (let i = 0; i < mazeDataArr.length; i++) {
+                runCount++;
+                results.push({
+                    id: runCount,
+                    gen: generator,
+                    algo: 'Pending',
+                    w: mazeDataArr[i].width,
+                    h: mazeDataArr[i].height,
+                    cells: mazeDataArr[i].width * mazeDataArr[i].height,
+                    genMs: Number(mazeDataArr[i].generationTime) ?? data.generationTime / mazeDataArr.length,
+                    solveMs: null,
+                    pathLen: null,
+                    efficiency: null
+                });
+                pendingResultIndexes.push(results.length - 1);
+            }
 
-    document.getElementById('genInfo').textContent = `Generated ${width}x${height} maze(s) in ${fmtMs(Number(data.generationTime))} ms.`;
-    document.getElementById('btnSolve').disabled = false;
-    RenderResults();
-    RenderMazeScroll();
-}
-
-// Solve maze
-document.getElementById('btnSolve').onclick = async () => {
-    const algorithm = document.getElementById('algorithmSelect').value;
-    const algorithmName = document.getElementById('algorithmSelect').selectedOptions[0].text
-    const generatorName = document.getElementById('generatorSelect').selectedOptions[0].text;
-
-    // HTTP POST to trigger solving, then GET to fetch solution
-    const res = await fetch('/solve?algorithm=' + algorithm, { method: 'POST' });
-    const data = await res.json();
-
-    pathDataArr = data.paths || [];
-    currentMazeIdx = 0;
-    const firstPathLength = (pathDataArr[0] || []).length;
-    document.getElementById('solveInfo').textContent = `Solved maze in ${fmtMs(Number(data.solvingTime))} ms. Path length: ${firstPathLength}.`;
-
-    if (pendingResultIndexes.length === mazeDataArr.length) {
-        for(let i = 0; i < mazeDataArr.length; i++){
-            const resultIndex = pendingResultIndexes[i];
-            const pathLength = (pathDataArr[i] || []).length;
-            results[resultIndex].gen = generatorName;
-            results[resultIndex].algo = algorithmName;
-            results[resultIndex].solveMs = data.solvingTime;
-            results[resultIndex].pathLen = pathLength;
-            results[resultIndex].efficiency = ((pathLength / (mazeDataArr[i].width * mazeDataArr[i].height)) * 100).toFixed(2);
+            document.getElementById('genInfo').textContent = `Generated ${width}x${height} maze(s) in ${fmtMs(Number(data.generationTime))} ms.`;
+            document.getElementById('btnSolve').disabled = false;
+            RenderResults();
+            RenderMazeScroll();
         }
-        pendingResultIndexes = [];
-    } else {
-        for(let i = 0; i < mazeDataArr.length; i++){
-            const pathLength = (pathDataArr[i] || []).length;
-            runCount++;
-            results.push({
-                id: runCount, gen: generatorName, algo: algorithmName,
-                w: mazeDataArr[i].width, h: mazeDataArr[i].height,
-                cells: mazeDataArr[i].width * mazeDataArr[i].height,
-                genMs: mazeDataArr[i].generationTime,
-                solveMs: data.solvingTime,
-                pathLen: pathLength,
-                efficiency: ((pathLength / (mazeDataArr[i].width * mazeDataArr[i].height)) * 100).toFixed(2)
-            });
+
+        // Solve maze
+        document.getElementById('btnSolve').onclick = async () => {
+            const algorithm = document.getElementById('algorithmSelect').value;
+            const algorithmName = document.getElementById('algorithmSelect').selectedOptions[0].text
+            const generatorName = document.getElementById('generatorSelect').selectedOptions[0].text;
+
+            // HTTP POST to trigger solving, then GET to fetch solution
+            const res = await fetch('/solve?algorithm=' + algorithm, { method: 'POST' });
+            const data = await res.json();
+
+            pathDataArr = data.paths || [];
+            currentMazeIdx = 0;
+            const firstPathLength = (pathDataArr[0] || []).length;
+            document.getElementById('solveInfo').textContent = `Solved maze in ${fmtMs(Number(data.solvingTime))} ms. Path length: ${firstPathLength}.`;
+
+            if (pendingResultIndexes.length === mazeDataArr.length) {
+                for (let i = 0; i < mazeDataArr.length; i++) {
+                    const resultIndex = pendingResultIndexes[i];
+                    const pathLength = (pathDataArr[i] || []).length;
+                    results[resultIndex].gen = generatorName;
+                    results[resultIndex].algo = algorithmName;
+                    results[resultIndex].solveMs = data.solvingTime;
+                    results[resultIndex].pathLen = pathLength;
+                    results[resultIndex].efficiency = ((pathLength / (mazeDataArr[i].width * mazeDataArr[i].height)) * 100).toFixed(2);
+                }
+                pendingResultIndexes = [];
+            } else {
+                for (let i = 0; i < mazeDataArr.length; i++) {
+                    const pathLength = (pathDataArr[i] || []).length;
+                    runCount++;
+                    results.push({
+                        id: runCount, gen: generatorName, algo: algorithmName,
+                        w: mazeDataArr[i].width, h: mazeDataArr[i].height,
+                        cells: mazeDataArr[i].width * mazeDataArr[i].height,
+                        genMs: mazeDataArr[i].generationTime,
+                        solveMs: data.solvingTime,
+                        pathLen: pathLength,
+                        efficiency: ((pathLength / (mazeDataArr[i].width * mazeDataArr[i].height)) * 100).toFixed(2)
+                    });
+                }
+            }
+
+            RenderResults();
+            RenderMazeScroll();
         }
-    }
 
-    RenderResults();
-    RenderMazeScroll();
-}
+        // Clear results
+        document.getElementById('btnClear').onclick = () => {
+            results = [];
+            runCount = 0;
+            pendingResultIndexes = [];
+            RenderResults();
+        }
 
-// Clear results
-document.getElementById('btnClear').onclick = () => {
-    results = [];
-    runCount = 0;
-    pendingResultIndexes = [];
-    RenderResults();
-}
+        function RenderMazeScroll() {
+            const canvas = document.getElementById('mazeCanvas');
+            const prevBtn = document.getElementById('prevMazeBtn');
+            const nextBtn = document.getElementById('nextMazeBtn');
+            const info = document.getElementById('mazeIndexInfo');
 
-function RenderMazeScroll() {
-    const canvas = document.getElementById('mazeCanvas');
-    const prevBtn = document.getElementById('prevMazeBtn');
-    const nextBtn = document.getElementById('nextMazeBtn');
-    const info = document.getElementById('mazeIndexInfo');
+            if (!mazeDataArr.length) {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                info.textContent = 'No maze generated.';
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
+                return;
+            }
 
-    if (!mazeDataArr.length) {
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        info.textContent = 'No maze generated.';
-        prevBtn.disabled = true;
-        nextBtn.disabled = true;
-        return;
-    }
+            currentMazeIdx = Math.max(0, Math.min(currentMazeIdx, mazeDataArr.length - 1));
+            DrawMaze(canvas, mazeDataArr[currentMazeIdx], pathDataArr[currentMazeIdx]);
+            info.textContent = `Maze ${currentMazeIdx + 1} of ${mazeDataArr.length}`;
+            prevBtn.disabled = currentMazeIdx === 0;
+            nextBtn.disabled = currentMazeIdx === mazeDataArr.length - 1;
+        }
 
-    currentMazeIdx = Math.max(0, Math.min(currentMazeIdx, mazeDataArr.length - 1));
-    DrawMaze(canvas, mazeDataArr[currentMazeIdx], pathDataArr[currentMazeIdx]);
-    info.textContent = `Maze ${currentMazeIdx+1} of ${mazeDataArr.length}`;
-    prevBtn.disabled = currentMazeIdx === 0;
-    nextBtn.disabled = currentMazeIdx === mazeDataArr.length - 1;
-}
-
-// Results rendering
-function RenderResults() {
-    const body = document.getElementById('resultsBody');
-    if(!results.length) {
-        body.innerHTML = '<tr><td colspan="9" style="color:#555">No results yet.</td></tr>';
-        return;
-    }
-    const solvedResults = results.filter(r => typeof r.solveMs === 'number');
-    const minSolve = solvedResults.length ? Math.min(...solvedResults.map(r => r.solveMs)) : null;
-    body.innerHTML = results.slice().reverse().map(r => `
+        // Results rendering
+        function RenderResults() {
+            const body = document.getElementById('resultsBody');
+            if (!results.length) {
+                body.innerHTML = '<tr><td colspan="9" style="color:#555">No results yet.</td></tr>';
+                return;
+            }
+            const solvedResults = results.filter(r => typeof r.solveMs === 'number');
+            const minSolve = solvedResults.length ? Math.min(...solvedResults.map(r => r.solveMs)) : null;
+            body.innerHTML = results.slice().reverse().map(r => `
         <tr class="${minSolve !== null && r.solveMs === minSolve ? 'fastest' : ''}">
             <td>${r.id}</td>
             <td>${r.gen}</td>
@@ -361,81 +394,82 @@ function RenderResults() {
             <td>${r.efficiency === null ? '-' : r.efficiency + '%'}</td>
         </tr>
     `).join('');
-}
-
-// Draw maze
-function DrawMaze(canvas, mazeData, pathData) {
-    if(!mazeData) return;
-    const ctx = canvas.getContext('2d');
-    const { width, height, passages, start, finish } = mazeData;
-    const cell_size = Math.min(canvas.width / width, canvas.height / height);
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#1e1e1e';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    const passageSet = new Set();
-    passages.forEach(p => {
-        passageSet.add(p.c1.x + ',' + p.c1.y + '-' + p.c2.x + ',' + p.c2.y);
-        passageSet.add(p.c2.x + ',' + p.c2.y + '-' + p.c1.x + ',' + p.c1.y);
-    });
-    const isPassage = (x1, y1, x2, y2) => passageSet.has(x1 + ',' + y1 + '-' + x2 + ',' + y2);
-
-    // Solution path
-    if(pathData && pathData.length > 0) {
-        ctx.fillStyle = '#26a4a6';
-        console.log('Drawing path with', pathData.length, 'cells');
-        pathData.forEach(c => ctx.fillRect(c.x * cell_size, c.y * cell_size, cell_size, cell_size));
-    }
-
-    // Start & Finish
-    if(start) {
-        ctx.fillStyle = '#4ec94e';
-        ctx.fillRect(start.x * cell_size, start.y * cell_size, cell_size, cell_size);
-    }
-    if(finish) {
-        ctx.fillStyle = '#e05252';
-        ctx.fillRect(finish.x * cell_size, finish.y * cell_size, cell_size, cell_size);
-    }
-
-    // Walls
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth   = 4;
-    ctx.beginPath();
-    ctx.rect(0.5, 0.5, canvas.width - 1, canvas.height - 1);
-    for(let y = 0; y < height; y++) {
-        for(let x = 0; x < width; x++) {
-            const cell_x = x * cell_size;
-            const cell_y = y * cell_size;
-
-            // Right wall
-            if(x < width - 1 && !isPassage(x, y, x + 1, y)) {
-                ctx.moveTo(cell_x + cell_size, cell_y);
-                ctx.lineTo(cell_x + cell_size, cell_y + cell_size);
-            }
-            // Bottom wall
-            if(y < height - 1 && !isPassage(x, y, x, y + 1)) {
-                ctx.moveTo(cell_x, cell_y + cell_size);
-                ctx.lineTo(cell_x + cell_size, cell_y + cell_size);
-            }
         }
-    }
-    ctx.stroke();
-}
 
-document.getElementById('prevMazeBtn').onclick = () => {
-    if(currentMazeIdx > 0) {
-        currentMazeIdx--;
-        RenderMazeScroll();
-    }
-};
+        // Draw maze
+        function DrawMaze(canvas, mazeData, pathData) {
+            if (!mazeData) return;
+            const ctx = canvas.getContext('2d');
+            const { width, height, passages, start, finish } = mazeData;
+            const cell_size = Math.min(canvas.width / width, canvas.height / height);
 
-document.getElementById('nextMazeBtn').onclick = () => {
-    if(currentMazeIdx < mazeDataArr.length - 1) {
-        currentMazeIdx++;
-        RenderMazeScroll();
-    };
-};
-</script>
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#1e1e1e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const passageSet = new Set();
+            passages.forEach(p => {
+                passageSet.add(p.c1.x + ',' + p.c1.y + '-' + p.c2.x + ',' + p.c2.y);
+                passageSet.add(p.c2.x + ',' + p.c2.y + '-' + p.c1.x + ',' + p.c1.y);
+            });
+            const isPassage = (x1, y1, x2, y2) => passageSet.has(x1 + ',' + y1 + '-' + x2 + ',' + y2);
+
+            // Solution path
+            if (pathData && pathData.length > 0) {
+                ctx.fillStyle = '#26a4a6';
+                console.log('Drawing path with', pathData.length, 'cells');
+                pathData.forEach(c => ctx.fillRect(c.x * cell_size, c.y * cell_size, cell_size, cell_size));
+            }
+
+            // Start & Finish
+            if (start) {
+                ctx.fillStyle = '#4ec94e';
+                ctx.fillRect(start.x * cell_size, start.y * cell_size, cell_size, cell_size);
+            }
+            if (finish) {
+                ctx.fillStyle = '#e05252';
+                ctx.fillRect(finish.x * cell_size, finish.y * cell_size, cell_size, cell_size);
+            }
+
+            // Walls
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.rect(0.5, 0.5, canvas.width - 1, canvas.height - 1);
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const cell_x = x * cell_size;
+                    const cell_y = y * cell_size;
+
+                    // Right wall
+                    if (x < width - 1 && !isPassage(x, y, x + 1, y)) {
+                        ctx.moveTo(cell_x + cell_size, cell_y);
+                        ctx.lineTo(cell_x + cell_size, cell_y + cell_size);
+                    }
+                    // Bottom wall
+                    if (y < height - 1 && !isPassage(x, y, x, y + 1)) {
+                        ctx.moveTo(cell_x, cell_y + cell_size);
+                        ctx.lineTo(cell_x + cell_size, cell_y + cell_size);
+                    }
+                }
+            }
+            ctx.stroke();
+        }
+
+        document.getElementById('prevMazeBtn').onclick = () => {
+            if (currentMazeIdx > 0) {
+                currentMazeIdx--;
+                RenderMazeScroll();
+            }
+        };
+
+        document.getElementById('nextMazeBtn').onclick = () => {
+            if (currentMazeIdx < mazeDataArr.length - 1) {
+                currentMazeIdx++;
+                RenderMazeScroll();
+            };
+        };
+    </script>
 </body>
+
 </html>
