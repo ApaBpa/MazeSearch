@@ -4,6 +4,10 @@
 #include <sstream>
 #include <vector>
 
+/* ULTRA AIDS INCOMING */
+
+/// @brief Convert maze vector to JSON string
+/// @return JSON string representing the mazes and generation time
 std::string MazesToJSON(const std::vector<Maze>& mazes, const double generationTime) {
     std::ostringstream oss;
     oss << "{"; // JSON object
@@ -60,6 +64,8 @@ std::string MazesToJSON(const std::vector<Maze>& mazes, const double generationT
     return oss.str();
 }
 
+/// @brief Convert path vector to JSON string
+/// @return JSON string representing the paths and solving time
 std::string PathsToJSON(const std::vector<std::vector<Cell *>>& paths, double solvingTime) {
     std::ostringstream oss;
     oss << "{";

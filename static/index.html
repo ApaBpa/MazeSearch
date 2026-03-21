@@ -402,6 +402,10 @@
             const ctx = canvas.getContext('2d');
             const { width, height, passages, start, finish } = mazeData;
             const cell_size = Math.min(canvas.width / width, canvas.height / height);
+            const maze_w = cell_size * width;
+            const maze_h = cell_size * height;
+            const offset_x = (canvas.width - maze_w) / 2;
+            const offset_y = (canvas.height - maze_h) / 2;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#1e1e1e';
@@ -418,28 +422,29 @@
             if (pathData && pathData.length > 0) {
                 ctx.fillStyle = '#26a4a6';
                 console.log('Drawing path with', pathData.length, 'cells');
-                pathData.forEach(c => ctx.fillRect(c.x * cell_size, c.y * cell_size, cell_size, cell_size));
+                pathData.forEach(c => ctx.fillRect(c.x * cell_size + offset_x, c.y * cell_size + offset_y, cell_size, cell_size));
             }
 
             // Start & Finish
             if (start) {
                 ctx.fillStyle = '#4ec94e';
-                ctx.fillRect(start.x * cell_size, start.y * cell_size, cell_size, cell_size);
+                ctx.fillRect(start.x * cell_size + offset_x, start.y * cell_size + offset_y, cell_size, cell_size);
             }
             if (finish) {
                 ctx.fillStyle = '#e05252';
-                ctx.fillRect(finish.x * cell_size, finish.y * cell_size, cell_size, cell_size);
+                ctx.fillRect(finish.x * cell_size + offset_x, finish.y * cell_size + offset_y, cell_size, cell_size);
             }
 
             // Walls
             ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = 4;
             ctx.beginPath();
-            ctx.rect(0.5, 0.5, canvas.width - 1, canvas.height - 1);
+            ctx.rect(offset_x + 0.5, offset_y + 0.5, maze_w - 1, maze_h - 1);
+
             for (let y = 0; y < height; y++) {
                 for (let x = 0; x < width; x++) {
-                    const cell_x = x * cell_size;
-                    const cell_y = y * cell_size;
+                    const cell_x = offset_x + x * cell_size;
+                    const cell_y = offset_y + y * cell_size;
 
                     // Right wall
                     if (x < width - 1 && !isPassage(x, y, x + 1, y)) {
