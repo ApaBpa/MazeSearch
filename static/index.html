@@ -114,36 +114,48 @@
             grid-template-columns: 1fr 2fr;
             /* Controls take 1/3, Maze takes 2/3 */
             gap: 24px;
-            /* Add spacing between grid items (controls and maze) */
             min-height: calc(100vh - 48px);
-            /* Full height minus padding */
-            align-items: stretch;
-            /* Make rows stretch to fill height */
+            align-items: start;
+            grid-auto-rows: minmax(0, auto);
             padding: 12px;
             border: #007acc solid 1px;
         }
 
         .controls {
-            width: 100%;
-            height: 100%;
+            max-height: calc(100vh - 48px);
+            border: 1px solid #007acc;
             overflow-y: auto;
+        }
+
+        .maze {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+
+            justify-content: flex-start;
+            align-items: stretch;
+
             padding: 16px;
             border: #007acc solid 1px;
             box-sizing: border-box;
         }
 
-        .maze {
+        .maze .row {
             width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
+        }
 
-            justify-content: flex-start;
-            align-items: center;
-
-            padding: 16px;
-            border: #007acc solid 1px;
+        #consoleLog {
+            width: 50%;
+            max-width: 100%;
             box-sizing: border-box;
+            align-self: flex-start;
+        }
+
+        .mazeWrapper {
+            position: relative;
+            display: block;
+            line-height: 0;
+            margin: auto;
         }
 
         .mazeWrapper {
@@ -209,8 +221,15 @@
                         <option value="astar">A*</option>
                     </select>
                 </label>
+                <label>Mode
+                    <select id="modeSelect">
+                        <option value="outer">Outer Sequential</option>
+                        <option value="inter">Inter-Maze Parallel</option>
+                        <option value="intra">Intra-Maze Parallel</option>
+                        <option value="seq">Sequential</option>
+                    </select>
+                </label>
                 <button id="btnSolve" disabled>Solve</button>
-                <p id="solveInfo">No maze solved.</p>
             </div>
 
             <div class="row">
@@ -246,6 +265,10 @@
                 <button id="nextMazeBtn" class="nav-btn next">&#8594;</button>
             </div>
             <div id="mazeIndexInfo" style="text-align:center;margin-top:8px;"></div>
+            <div class="row">
+                <h2>Console Log</h2>
+                <pre id="consoleLog" style="background:#111; color:rgb(255, 255, 255); padding:8px; box-sizing:border-box; height:150px; overflow-y:auto; border:1px solid #007acc; white-space:pre-wrap;"></pre>
+            </div>
         </div>
     </div>
 
@@ -309,7 +332,6 @@
             pathDataArr = data.paths || [];
             currentMazeIdx = 0;
             const firstPathLength = (pathDataArr[0] || []).length;
-            document.getElementById('solveInfo').textContent = `Solved maze in ${fmtMs(Number(data.solvingTime))} ms. Path length: ${firstPathLength}.`;
 
             if (pendingResultIndexes.length === mazeDataArr.length) {
                 for (let i = 0; i < mazeDataArr.length; i++) {
@@ -474,6 +496,21 @@
                 RenderMazeScroll();
             };
         };
+
+        async function refreshLogs(){
+            try {
+                const res = await fetch('/logs');
+                if (!res.ok) return;
+                const lines = await res.json();
+                const consoleLog = document.getElementById('consoleLog');
+                consoleLog.textContent = lines.join('\n');
+                consoleLog.scrollTop = consoleLog.scrollHeight;
+            } catch (err) {
+                console.error('Log polling failed', err);
+            }
+        }
+
+        setInterval(refreshLogs, 500);
     </script>
 </body>
 

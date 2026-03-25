@@ -1,4 +1,4 @@
-# Work in progress
+# *Work in progress
 Currently, only the sequential and MPI solver is implemented
 
 ## Dependencies

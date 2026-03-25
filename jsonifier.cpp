@@ -1,4 +1,4 @@
-#include "maze_solver.h"
+#include "solve_a_star.h"
 #include "maze.h"
 #include "stdio.h"
 #include <sstream>
