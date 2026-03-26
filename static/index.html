@@ -148,7 +148,7 @@
             width: 50%;
             max-width: 100%;
             box-sizing: border-box;
-            align-self: flex-start;
+            margin: 0 auto;
         }
 
         .mazeWrapper {
@@ -158,10 +158,14 @@
             margin: auto;
         }
 
-        .mazeWrapper {
-            position: relative;
-            display: inline-block;
-            line-height: 0;
+        .mazeFooter {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-top: 8px;
+            padding: 0 10px;
+            box-sizing: border-box;
         }
 
         .nav-btn {
@@ -263,10 +267,14 @@
                 <button id="prevMazeBtn" class="nav-btn prev">&#8592;</button>
                 <canvas id="mazeCanvas" width="600" height="600"></canvas>
                 <button id="nextMazeBtn" class="nav-btn next">&#8594;</button>
+                <div class="mazeFooter">   
+                    <span id="mazeIndexInfo">Maze 1 of 10</span>
+                    <button id="toggleViewBtn">Graph Representation</button>
+                </div>
             </div>
-            <div id="mazeIndexInfo" style="text-align:center;margin-top:8px;"></div>
+            
             <div class="row">
-                <h2>Console Log</h2>
+                <h2 style="text-align:center;"> Console Log</h2>
                 <pre id="consoleLog" style="background:#111; color:rgb(255, 255, 255); padding:8px; box-sizing:border-box; height:150px; overflow-y:auto; border:1px solid #007acc; white-space:pre-wrap;"></pre>
             </div>
         </div>
@@ -279,6 +287,7 @@
         let runCount = 0;
         let results = [];
         let pendingResultIndexes = [];
+        let graphMode = false;
         const fmtMs = (v) => Number.isFinite(v) ? v.toFixed(2) : '-';
 
         // Generate maze
@@ -372,26 +381,32 @@
             RenderResults();
         }
 
+        function refreshToggleLabel() {
+            const btn = document.getElementById('toggleViewBtn');
+            if (!btn) return;
+            btn.textContent = graphMode ? 'Maze Representation' : 'Graph Representation';
+        }
+
+        const toggleViewBtn = document.getElementById('toggleViewBtn');
+        if (toggleViewBtn) {
+            toggleViewBtn.addEventListener('click', () => {
+                graphMode = !graphMode;
+                refreshToggleLabel();
+                RenderMazeScroll();
+            });
+        }
+        refreshToggleLabel();
+
         function RenderMazeScroll() {
             const canvas = document.getElementById('mazeCanvas');
-            const prevBtn = document.getElementById('prevMazeBtn');
-            const nextBtn = document.getElementById('nextMazeBtn');
+            if (!canvas) return;
+            const mazeData = mazeDataArr[currentMazeIdx];
+            const pathData = pathDataArr[currentMazeIdx] || [];
+            if (!mazeData) return;  
+            if (graphMode) DrawGraph(canvas, mazeData, pathData);
+            else DrawMaze(canvas, mazeData, pathData);  
             const info = document.getElementById('mazeIndexInfo');
-
-            if (!mazeDataArr.length) {
-                const ctx = canvas.getContext('2d');
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                info.textContent = 'No maze generated.';
-                prevBtn.disabled = true;
-                nextBtn.disabled = true;
-                return;
-            }
-
-            currentMazeIdx = Math.max(0, Math.min(currentMazeIdx, mazeDataArr.length - 1));
-            DrawMaze(canvas, mazeDataArr[currentMazeIdx], pathDataArr[currentMazeIdx]);
-            info.textContent = `Maze ${currentMazeIdx + 1} of ${mazeDataArr.length}`;
-            prevBtn.disabled = currentMazeIdx === 0;
-            nextBtn.disabled = currentMazeIdx === mazeDataArr.length - 1;
+            if (info) info.textContent = `Maze ${currentMazeIdx + 1} of ${mazeDataArr.length}`;
         }
 
         // Results rendering
@@ -432,6 +447,7 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#1e1e1e';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.lineCap = 'round';
 
             const passageSet = new Set();
             passages.forEach(p => {
@@ -443,7 +459,6 @@
             // Solution path
             if (pathData && pathData.length > 0) {
                 ctx.fillStyle = '#26a4a6';
-                console.log('Drawing path with', pathData.length, 'cells');
                 pathData.forEach(c => ctx.fillRect(c.x * cell_size + offset_x, c.y * cell_size + offset_y, cell_size, cell_size));
             }
 
@@ -481,6 +496,101 @@
                 }
             }
             ctx.stroke();
+        }
+
+        // Draw maze in the style of a graph
+        function DrawGraph(canvas, mazeData, pathData) {
+            if (!mazeData) return;
+            const ctx = canvas.getContext('2d');
+            const { width, height, passages, start, finish } = mazeData;
+            const cell_size = Math.min(canvas.width / width, canvas.height / height);
+            const maze_w = cell_size * width;
+            const maze_h = cell_size * height;
+            const offset_x = (canvas.width - maze_w) / 2;
+            const offset_y = (canvas.height - maze_h) / 2;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#1e1e1e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const edges = new Set();
+            
+            function edgeKey(x1, y1, x2, y2) {return `${x1},${y1}|${x2},${y2}`;}
+            (mazeData.passages || []).forEach(p => {
+                edges.add(edgeKey(p.c1.x,p.c1.y,p.c2.x,p.c2.y));
+                edges.add(edgeKey(p.c2.x,p.c2.y,p.c1.x,p.c1.y));
+            });
+
+            // Draw solution path
+            if(Array.isArray(pathData) && pathData.length > 1){
+                ctx.beginPath();
+                ctx.strokeStyle = '#26a4a6';
+                ctx.lineWidth = 6;
+                ctx.lineCap = 'round';
+                pathData.forEach((p, i) => {
+                    const px = offset_x + p.x * cell_size + cell_size / 2;
+                    const py = offset_y + p.y * cell_size + cell_size / 2;
+                    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+                });
+                ctx.stroke();
+            }
+
+            // Draw edges between nodes
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const cx = offset_x + x * cell_size + cell_size / 2;
+                    const cy = offset_y + y * cell_size + cell_size / 2;
+                    [{dx:1, dy:0}, {dx:0, dy:1}].forEach(d => { // Iterate over each direction (right, down)
+                        const nx = x + d.dx, ny = y + d.dy;
+                        if (nx < width && ny < height) {
+                            if (edges.has(edgeKey(x, y, nx, ny)) || edges.has(edgeKey(nx, ny, x, y))){
+                                const ncx = offset_x + nx * cell_size + cell_size / 2;
+                                const ncy = offset_y + ny * cell_size + cell_size / 2;
+                                ctx.moveTo(cx, cy);
+                                ctx.lineTo(ncx, ncy);
+                            }
+                        }
+                    });
+                }
+            }
+            ctx.stroke();
+
+            // Draw nodes
+            const nodeRadius = Math.max(4, cell_size * 0.2);
+            ctx.fillStyle = '#ffffff';
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const cx = offset_x + x * cell_size + cell_size / 2;
+                    const cy = offset_y + y * cell_size + cell_size / 2;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, nodeRadius, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            }
+
+            // Draw start
+            if(start){
+                ctx.fillStyle = '#4ec94e';
+                const sx = offset_x + start.x * cell_size + cell_size / 2;
+                const sy = offset_y + start.y * cell_size + cell_size / 2;
+                ctx.beginPath();
+                ctx.arc(sx, sy, nodeRadius * 1.5, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+
+            // Draw finish
+            if(finish){
+                ctx.fillStyle = '#e05252';
+                const fx = offset_x + finish.x * cell_size + cell_size / 2;
+                const fy = offset_y + finish.y * cell_size + cell_size / 2;
+                ctx.beginPath();
+                ctx.arc(fx, fy, nodeRadius * 1.5, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+
         }
 
         document.getElementById('prevMazeBtn').onclick = () => {
