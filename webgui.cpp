@@ -50,6 +50,10 @@ static std::string GetStrParam(const httplib::Request req, const std::string& ke
     return defaultValue;
 }
 
+static bool ModeValid(const std::string& mode){
+    return mode == "inter" || mode == "intra" || mode == "combined" || mode == "sequential";
+}
+
 // Request handler for maze generation
 void RegisterGenerateHandler (httplib::Server& server){
     server.Post("/generate", [](const httplib::Request& req, httplib::Response& res){
@@ -94,12 +98,18 @@ void RegisterSolveHandler (httplib::Server& server){
         }
 
         auto t0 = std::chrono::high_resolution_clock::now();    // Kosher??
-        std::string mode = GetStrParam(req, "mode", "outer");
+        std::string mode = GetStrParam(req, "mode", "sequential");
+        if (!ModeValid(mode)) {
+            res.status = 400;
+            res.set_content("{\"error\":\"Invalid mode.\"}", "application/json");
+            return;
+        }
+
         std::vector<std::vector<Cell *>> paths = SolveSelected(mazes, mode);
         auto t1 = std::chrono::high_resolution_clock::now();
         double solvingTime = std::chrono::duration<double, std::milli>(t1 - t0).count();
 
-        AppendLog("[SOL] Mode=" + GetStrParam(req, "mode", "outer") + " solved " + std::to_string(mazes.size()) + " maze(s) in " + std::to_string(solvingTime) + " ms");
+        AppendLog("[SOL] Mode=" + mode + " solved " + std::to_string(mazes.size()) + " maze(s) in " + std::to_string(solvingTime) + " ms");
 
         if (solution_cached && PathsEqual(paths, previous_paths)) {
             res.set_content(PathsToJSON(previous_paths, solvingTime), "application/json");

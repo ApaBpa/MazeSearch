@@ -15,6 +15,7 @@
 #include <limits>
 #include <deque>
 #include <vector>
+#include <stdexcept>
 
 std::vector<Cell*> FindNeighbours(const Maze &maze, const Cell c) {
     std::vector<Cell*> neighbours;
@@ -117,17 +118,12 @@ std::vector<Cell *> AStarSeq(Maze &maze){
 }
 
 /// @brief Solves multiple mazes sequentially (outer maze parallelism).
-std::vector<std::vector<Cell *>> SolveOuterMaze(std::vector<Maze>& mazes){
+std::vector<std::vector<Cell *>> SolveSeq(std::vector<Maze>& mazes){
     std::vector<std::vector<Cell *>> results;
     for (Maze &maze : mazes){
         results.push_back(AStarSeq(maze));
     }
     return results;
-}
-
-/// @brief Legacy alias for outer solver.
-std::vector<std::vector<Cell *>> SolveSeq(std::vector<Maze>& mazes){
-    return SolveOuterMaze(mazes);
 }
 
 #ifdef USE_MPI
@@ -206,17 +202,22 @@ std::vector<std::vector<Cell *>> SolveInterMaze(std::vector<Maze>& mazes){
 #endif
 
 std::vector<std::vector<Cell *>> SolveSelected(std::vector<Maze>& mazes, const std::string &mode){
-    if (mode == "inter") {
+    if (mode == "inter"){
+        printf("Solving Maze [INTER]...\n");
         return SolveInterMaze(mazes);
-    } else if (mode == "intra") {
+    } else if (mode == "intra"){
+        printf("Solving Maze [INTRA]...\n");
         return SolveIntraMaze(mazes);
-    } else if (mode == "outer") {
-        return SolveOuterMaze(mazes);
-    } else if (mode == "seq") {
+    } else if (mode == "combined"){
+        printf("Solving Maze [COMBINED]...\n");
+        // TODO: real inter+intra implementation not present yet
+        return SolveInterMaze(mazes);
+    } else if (mode == "sequential"){
+        printf("Solving Maze [SEQUENTIAL]...\n");
         return SolveSeq(mazes);
     }
-    // Fallback
-    return SolveOuterMaze(mazes);
+
+    throw std::invalid_argument("Invalid mode: " + mode);
 }
 
 struct HDAMessage {

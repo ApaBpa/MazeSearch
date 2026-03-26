@@ -179,6 +179,7 @@
             left: 0px;
             transform: translate(-120%, -50%);
         }
+
         .nav-btn.next {
             right: 0px;
             transform: translate(120%, -50%);
@@ -227,10 +228,10 @@
                 </label>
                 <label>Mode
                     <select id="modeSelect">
-                        <option value="outer">Outer Sequential</option>
                         <option value="inter">Inter-Maze Parallel</option>
                         <option value="intra">Intra-Maze Parallel</option>
-                        <option value="seq">Sequential</option>
+                        <option value="combined">Inter + Intra</option>
+                        <option value="sequential">Sequential</option>
                     </select>
                 </label>
                 <button id="btnSolve" disabled>Solve</button>
@@ -267,15 +268,19 @@
                 <button id="prevMazeBtn" class="nav-btn prev">&#8592;</button>
                 <canvas id="mazeCanvas" width="600" height="600"></canvas>
                 <button id="nextMazeBtn" class="nav-btn next">&#8594;</button>
-                <div class="mazeFooter">   
+                <div class="mazeFooter">
                     <span id="mazeIndexInfo">Maze 1 of 10</span>
+                    <button id="zoomResetBtn">100%</button>
+                    <button id="zoomOutBtn">Zoom Out</button>
+                    <button id="zoomInBtn">Zoom In</button>
                     <button id="toggleViewBtn">Graph Representation</button>
                 </div>
             </div>
-            
+
             <div class="row">
                 <h2 style="text-align:center;"> Console Log</h2>
-                <pre id="consoleLog" style="background:#111; color:rgb(255, 255, 255); padding:8px; box-sizing:border-box; height:150px; overflow-y:auto; border:1px solid #007acc; white-space:pre-wrap;"></pre>
+                <pre id="consoleLog"
+                    style="background:#111; color:rgb(255, 255, 255); padding:8px; box-sizing:border-box; height:150px; overflow-y:auto; border:1px solid #007acc; white-space:pre-wrap;"></pre>
             </div>
         </div>
     </div>
@@ -288,6 +293,12 @@
         let results = [];
         let pendingResultIndexes = [];
         let graphMode = false;
+        let displayedMaze = 0;
+        let zoomLevel = 1;
+        const ZOOM_MIN = 1;
+        const ZOOM_MAX = 500;
+        const ZOOM_STEP = 1;
+
         const fmtMs = (v) => Number.isFinite(v) ? v.toFixed(2) : '-';
 
         // Generate maze
@@ -302,7 +313,6 @@
 
             mazeDataArr = data.mazes || [data];
             pathDataArr = new Array(mazeDataArr.length).fill(null);
-            currentMazeIdx = 0;
 
             pendingResultIndexes = [];
             for (let i = 0; i < mazeDataArr.length; i++) {
@@ -331,15 +341,15 @@
         // Solve maze
         document.getElementById('btnSolve').onclick = async () => {
             const algorithm = document.getElementById('algorithmSelect').value;
+            const mode = document.getElementById('modeSelect').value;
             const algorithmName = document.getElementById('algorithmSelect').selectedOptions[0].text
             const generatorName = document.getElementById('generatorSelect').selectedOptions[0].text;
 
             // HTTP POST to trigger solving, then GET to fetch solution
-            const res = await fetch('/solve?algorithm=' + algorithm, { method: 'POST' });
+            const res = await fetch('/solve?algorithm=' + algorithm + '&mode=' + mode, { method: 'POST' });
             const data = await res.json();
 
             pathDataArr = data.paths || [];
-            currentMazeIdx = 0;
             const firstPathLength = (pathDataArr[0] || []).length;
 
             if (pendingResultIndexes.length === mazeDataArr.length) {
@@ -402,12 +412,35 @@
             if (!canvas) return;
             const mazeData = mazeDataArr[currentMazeIdx];
             const pathData = pathDataArr[currentMazeIdx] || [];
-            if (!mazeData) return;  
+            if (!mazeData) return;
             if (graphMode) DrawGraph(canvas, mazeData, pathData);
-            else DrawMaze(canvas, mazeData, pathData);  
+            else DrawMaze(canvas, mazeData, pathData);
             const info = document.getElementById('mazeIndexInfo');
             if (info) info.textContent = `Maze ${currentMazeIdx + 1} of ${mazeDataArr.length}`;
         }
+
+        function clamp(v, min, max) { return Math.min(Math.max(v, min), max); }
+
+        function setZoom(level) {
+            zoomLevel = clamp(level, ZOOM_MIN, ZOOM_MAX);
+            const resetBtn = document.getElementById('zoomResetBtn');
+            if (resetBtn) resetBtn.textContent = `${Math.round(zoomLevel * 100)}%`;
+            RenderMazeScroll();
+        }
+
+        function applyZoom(ctx, canvas) {
+            ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            ctx.translate(centerX, centerY);
+            ctx.scale(zoomLevel, zoomLevel);
+            ctx.translate(-centerX, -centerY);
+        }
+
+        document.getElementById('zoomInBtn').onclick = () => setZoom(zoomLevel + ZOOM_STEP);
+        document.getElementById('zoomOutBtn').onclick = () => setZoom(zoomLevel - ZOOM_STEP);
+        document.getElementById('zoomResetBtn').onclick = () => setZoom(1);
 
         // Results rendering
         function RenderResults() {
@@ -437,6 +470,9 @@
         function DrawMaze(canvas, mazeData, pathData) {
             if (!mazeData) return;
             const ctx = canvas.getContext('2d');
+
+            applyZoom(ctx, canvas);
+
             const { width, height, passages, start, finish } = mazeData;
             const cell_size = Math.min(canvas.width / width, canvas.height / height);
             const maze_w = cell_size * width;
@@ -496,11 +532,15 @@
                 }
             }
             ctx.stroke();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
         }
 
         // Draw maze in the style of a graph
         function DrawGraph(canvas, mazeData, pathData) {
             if (!mazeData) return;
+
+            applyZoom(canvas.getContext('2d'), canvas);
+
             const ctx = canvas.getContext('2d');
             const { width, height, passages, start, finish } = mazeData;
             const cell_size = Math.min(canvas.width / width, canvas.height / height);
@@ -514,15 +554,15 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const edges = new Set();
-            
-            function edgeKey(x1, y1, x2, y2) {return `${x1},${y1}|${x2},${y2}`;}
+
+            function edgeKey(x1, y1, x2, y2) { return `${x1},${y1}|${x2},${y2}`; }
             (mazeData.passages || []).forEach(p => {
-                edges.add(edgeKey(p.c1.x,p.c1.y,p.c2.x,p.c2.y));
-                edges.add(edgeKey(p.c2.x,p.c2.y,p.c1.x,p.c1.y));
+                edges.add(edgeKey(p.c1.x, p.c1.y, p.c2.x, p.c2.y));
+                edges.add(edgeKey(p.c2.x, p.c2.y, p.c1.x, p.c1.y));
             });
 
             // Draw solution path
-            if(Array.isArray(pathData) && pathData.length > 1){
+            if (Array.isArray(pathData) && pathData.length > 1) {
                 ctx.beginPath();
                 ctx.strokeStyle = '#26a4a6';
                 ctx.lineWidth = 6;
@@ -543,10 +583,10 @@
                 for (let x = 0; x < width; x++) {
                     const cx = offset_x + x * cell_size + cell_size / 2;
                     const cy = offset_y + y * cell_size + cell_size / 2;
-                    [{dx:1, dy:0}, {dx:0, dy:1}].forEach(d => { // Iterate over each direction (right, down)
+                    [{ dx: 1, dy: 0 }, { dx: 0, dy: 1 }].forEach(d => { // Iterate over each direction (right, down)
                         const nx = x + d.dx, ny = y + d.dy;
                         if (nx < width && ny < height) {
-                            if (edges.has(edgeKey(x, y, nx, ny)) || edges.has(edgeKey(nx, ny, x, y))){
+                            if (edges.has(edgeKey(x, y, nx, ny)) || edges.has(edgeKey(nx, ny, x, y))) {
                                 const ncx = offset_x + nx * cell_size + cell_size / 2;
                                 const ncy = offset_y + ny * cell_size + cell_size / 2;
                                 ctx.moveTo(cx, cy);
@@ -572,7 +612,7 @@
             }
 
             // Draw start
-            if(start){
+            if (start) {
                 ctx.fillStyle = '#4ec94e';
                 const sx = offset_x + start.x * cell_size + cell_size / 2;
                 const sy = offset_y + start.y * cell_size + cell_size / 2;
@@ -582,7 +622,7 @@
             }
 
             // Draw finish
-            if(finish){
+            if (finish) {
                 ctx.fillStyle = '#e05252';
                 const fx = offset_x + finish.x * cell_size + cell_size / 2;
                 const fy = offset_y + finish.y * cell_size + cell_size / 2;
@@ -591,6 +631,7 @@
                 ctx.fill();
             }
 
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
         }
 
         document.getElementById('prevMazeBtn').onclick = () => {
@@ -607,7 +648,7 @@
             };
         };
 
-        async function refreshLogs(){
+        async function refreshLogs() {
             try {
                 const res = await fetch('/logs');
                 if (!res.ok) return;
