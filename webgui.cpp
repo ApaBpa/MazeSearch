@@ -4,14 +4,18 @@
 #include "maze_generator.h"
 #include "solve_a_star.h"
 #include "jsonifier.h"
+#include "mpi_controller.h"
 #include <fstream>
 #include <chrono>
 #include <mutex>
 #include <algorithm>
 #include <deque>
+#ifdef USE_MPI
+#include "mpi.h"
+#endif
 
-// Runtime choose solver via request parameter (default outer sequential)
-// valid modes: inter, intra, outer, seq
+// Runtime choose solver via request parameter.
+// valid modes: inter, intra, combined, sequential
 
 static std::vector<Maze> mazes;
 static MazeGenerator generator;
@@ -54,12 +58,31 @@ static bool ModeValid(const std::string& mode){
     return mode == "inter" || mode == "intra" || mode == "combined" || mode == "sequential";
 }
 
+static double GenerateMazes(int width, int height, int num_mazes, uint32_t seed) {
+    mazes.clear();
+    mazes.reserve(num_mazes);
+    generator.Seed(seed);
+
+    auto t0 = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < num_mazes; ++i) {
+        Maze maze(width, height);
+        generator.GeneratePrim(maze);
+        mazes.push_back(std::move(maze));
+    }
+    auto t1 = std::chrono::high_resolution_clock::now();
+
+    previous_paths.clear();
+    solution_cached = false;
+
+    return std::chrono::duration<double, std::milli>(t1 - t0).count();
+}
+
 // Request handler for maze generation
 void RegisterGenerateHandler (httplib::Server& server){
     server.Post("/generate", [](const httplib::Request& req, httplib::Response& res){
         int width = std::max(2, std::min(500, GetIntParam(req, "width", 20)));
         int height = std::max(2, std::min(500, GetIntParam(req, "height", 20)));
-        int num_mazes = std::max(1, std::min(100, GetIntParam(req, "numMazes", 1)));
+        int num_mazes = std::max(1, std::min(10000, GetIntParam(req, "numMazes", 1)));
         std::lock_guard<std::mutex> lock(maze_mutex);
 
         if(num_mazes == 0){
@@ -67,22 +90,13 @@ void RegisterGenerateHandler (httplib::Server& server){
             return;
         }
 
-        mazes.clear();
-        mazes.reserve(num_mazes);
-        
-        auto t0 = std::chrono::high_resolution_clock::now(); // Kosher??
-        for (int i = 0; i < num_mazes; ++i) {
-            Maze maze(width, height);
-            generator.GeneratePrim(maze);
-            mazes.push_back(std::move(maze));
-        }
-        auto t1 = std::chrono::high_resolution_clock::now();
-        double generationTime = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        uint32_t seed = static_cast<uint32_t>(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+    #ifdef USE_MPI
+        MpiBroadcastGenerateCommand(width, height, num_mazes, seed);
+    #endif
+        double generationTime = GenerateMazes(width, height, num_mazes, seed);
 
         AppendLog("[GEN] Generated " + std::to_string(num_mazes) + " maze(s) " + std::to_string(width) + "x" + std::to_string(height) + " in " + std::to_string(generationTime) + " ms");
-
-        previous_paths.clear();
-        solution_cached = false;
         res.set_content(MazesToJSON(mazes, generationTime), "application/json");
     });
 }
@@ -105,6 +119,9 @@ void RegisterSolveHandler (httplib::Server& server){
             return;
         }
 
+    #ifdef USE_MPI
+        MpiBroadcastSolveCommand(mode);
+    #endif
         std::vector<std::vector<Cell *>> paths = SolveSelected(mazes, mode);
         auto t1 = std::chrono::high_resolution_clock::now();
         double solvingTime = std::chrono::duration<double, std::milli>(t1 - t0).count();
@@ -125,6 +142,12 @@ void RegisterSolveHandler (httplib::Server& server){
 
 void StartWebServer(){
     httplib::Server server;
+
+#ifdef USE_MPI
+    int world_size = 1;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    AppendLog("[MPI] World size=" + std::to_string(world_size));
+#endif
 
     server.Get("/icons/favicon.ico", [](const httplib::Request&, httplib::Response& res) {
         std::ifstream f("./icons/favicon.ico", std::ios::binary);
@@ -169,4 +192,18 @@ void StartWebServer(){
     int port = 8080;
     printf("Server running at http://localhost:%d\n", port);
     server.listen("0.0.0.0", port);
+}
+
+void RunMpiWorkerLoop(){
+#ifdef USE_MPI
+    MpiRunWorkerLoop(
+        [](int width, int height, int num_mazes, uint32_t seed) {
+            std::lock_guard<std::mutex> lock(maze_mutex);
+            (void)GenerateMazes(width, height, num_mazes, seed);
+        },
+        [](const std::string& mode) {
+            std::lock_guard<std::mutex> lock(maze_mutex);
+            (void)SolveSelected(mazes, mode);
+        });
+#endif
 }

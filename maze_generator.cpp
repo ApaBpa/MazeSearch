@@ -12,6 +12,11 @@ MazeGenerator::MazeGenerator()
     rng.seed(rd());
 }
 
+void MazeGenerator::Seed(uint32_t seed)
+{
+    rng.seed(seed);
+}
+
 /// @brief Generate maze with prim's algorithm https://weblog.jamisbuck.org/2011/1/10/maze-generation-prim-s-algorithm
 /// @param maze Empty maze with cells. The function will fill this maze with passages, start and finish.
 void MazeGenerator::GeneratePrim(Maze &maze)

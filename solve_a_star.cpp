@@ -127,6 +127,13 @@ std::vector<std::vector<Cell *>> SolveSeq(std::vector<Maze>& mazes){
 }
 
 #ifdef USE_MPI
+struct CellCoord {
+    int x;
+    int y;
+};
+
+static Cell* GetCellPtr(Maze &maze, int posX, int posY);
+
 /// @brief Solves mutiple mazes in parallel using MPI. Each process will solve a subset of all mazes. Expected speedup ~ number of cores on the CPU.
 /// @param mazes 
 /// @return Vector of paths, where each path is a vector of Cell representing the order of cells from start to finish for each maze. The order of paths corresponds to the order of mazes in the input vector.
@@ -160,10 +167,23 @@ std::vector<std::vector<Cell *>> SolveMPI(std::vector<Maze>& mazes){
                 int pathSize;
                 MPI_Recv(&pathSize, 1, MPI_INT, source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-                std::vector<Cell *> path(pathSize);
-                MPI_Recv(path.data(), pathSize * sizeof(Cell *), MPI_BYTE, source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                std::vector<CellCoord> coords(pathSize);
+                if (pathSize > 0) {
+                    MPI_Recv(coords.data(), pathSize * sizeof(CellCoord), MPI_BYTE, source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                }
 
-                allResults.push_back(path);
+                std::vector<Cell *> path;
+                path.reserve(pathSize);
+                int globalMazeIndex = source * mazesPerProcess + i;
+                for (const CellCoord& coord : coords) {
+                    if (coord.x < 0 || coord.y < 0 || globalMazeIndex < 0 || globalMazeIndex >= num_mazes) {
+                        path.push_back(nullptr);
+                    } else {
+                        path.push_back(GetCellPtr(mazes[globalMazeIndex], coord.x, coord.y));
+                    }
+                }
+
+                allResults.push_back(std::move(path));
             }
         }
 
@@ -175,23 +195,36 @@ std::vector<std::vector<Cell *>> SolveMPI(std::vector<Maze>& mazes){
         for (const std::vector<Cell *>& path : localResults) {
             int pathSize = path.size();
             MPI_Send(&pathSize, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
-            MPI_Send(path.data(), pathSize * sizeof(Cell *), MPI_BYTE, 0, 0, MPI_COMM_WORLD);
+
+            std::vector<CellCoord> coords;
+            coords.reserve(path.size());
+            for (Cell* cell : path) {
+                if (cell) {
+                    coords.push_back({cell->posX, cell->posY});
+                } else {
+                    coords.push_back({-1, -1});
+                }
+            }
+
+            if (pathSize > 0) {
+                MPI_Send(coords.data(), pathSize * sizeof(CellCoord), MPI_BYTE, 0, 0, MPI_COMM_WORLD);
+            }
         }
 
         return {};
     }
 }
 
-/// @brief Solves multiple mazes in parallel (intra-maze): MPI process farm.
-std::vector<std::vector<Cell *>> SolveIntraMaze(std::vector<Maze>& mazes){
+/// @brief Solves multiple mazes in parallel (inter-maze): MPI process farm.
+std::vector<std::vector<Cell *>> SolveInterMaze(std::vector<Maze>& mazes){
     return SolveMPI(mazes);
 }
 
 std::vector<Cell *> HDA(Maze& maze);
 
 #ifdef USE_MPI
-/// @brief Solves multiple mazes with HDA for each maze (inter-maze).
-std::vector<std::vector<Cell *>> SolveInterMaze(std::vector<Maze>& mazes){
+/// @brief Solves one maze at a time with HDA (intra-maze parallelism).
+std::vector<std::vector<Cell *>> SolveIntraMaze(std::vector<Maze>& mazes){
     std::vector<std::vector<Cell *>> results;
     results.reserve(mazes.size());
     for (Maze &maze : mazes){
@@ -203,14 +236,15 @@ std::vector<std::vector<Cell *>> SolveInterMaze(std::vector<Maze>& mazes){
 
 std::vector<std::vector<Cell *>> SolveSelected(std::vector<Maze>& mazes, const std::string &mode){
     if (mode == "inter"){
-        printf("Solving Maze [INTER]...\n");
+        // UI "inter" means inter-maze parallelism.
+        printf("Solving Maze [INTER-MAZE]...\n");
         return SolveInterMaze(mazes);
     } else if (mode == "intra"){
-        printf("Solving Maze [INTRA]...\n");
+        // UI "intra" means intra-maze parallelism.
+        printf("Solving Maze [INTRA-MAZE]...\n");
         return SolveIntraMaze(mazes);
     } else if (mode == "combined"){
-        printf("Solving Maze [COMBINED]...\n");
-        // TODO: real inter+intra implementation not present yet
+        printf("Solving Maze [COMBINED] (fallback to INTER-MAZE only; full combined not implemented yet)...\n");
         return SolveInterMaze(mazes);
     } else if (mode == "sequential"){
         printf("Solving Maze [SEQUENTIAL]...\n");

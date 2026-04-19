@@ -1,0 +1,224 @@
+.header1 {
+    color: #ffffff;
+    font-size: 20px;
+    margin-top: 16px;
+    margin-bottom: 4px;
+}
+
+.header2 {
+    color: #ffffff;
+    font-size: 18px;
+    margin-top: 16px;
+    margin-bottom: 4px;
+}
+
+.maze-btn-wrapper {
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+}
+
+.maze-btn-wrapper .zoom-icon {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.btn-zoom-in,
+.btn-zoom-out {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-num-mazes {
+
+}
+
+button {
+    background-color: #0e639c;
+    color: #ffffff;
+    border: none;
+    padding: 5px 14px;
+    font-size: 13px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+html {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    height: 100%;
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 16px;
+    margin: 0;
+    overflow: hidden;
+}
+
+label {
+    margin-right: 12px;
+    color: #d4d4d4;
+}
+
+input[type="number"],
+select {
+    background-color: #3c3c3c;
+    color: #d4d4d4;
+    border: 1px solid #555555;
+    padding: 4px 8px;
+    font-size: 13px;
+    border-radius: 3px;
+    outline: none;
+}
+
+input[type="number"]:focus,
+select:focus {
+    border-color: #007acc;
+}
+
+button:hover {
+    background-color: #1177bb;
+}
+
+button:disabled {
+    background-color: #3c3c3c;
+    color: #555555;
+    cursor: not-allowed;
+}
+
+table {
+    border-collapse: collapse;
+    border: 1px solid #007acc;
+    margin-top: 8px;
+    width: 100%;
+}
+
+th,
+td {
+    border: 1px solid #3c3c3c;
+}
+
+th {
+    background-color: #252526;
+    color: #9cdcfe;
+    text-align: left;
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+td {
+    padding: 5px 10px;
+    color: #d4d4d4;
+}
+
+tr:hover td {
+    background-color: #2a2d2e;
+}
+
+tr.fastest td {
+    color: #dcdcaa;
+}
+
+.header-container {
+    margin-bottom: 20px;
+}
+
+.row {
+    display: block;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    /* Controls take 1/3, Maze takes 2/3 */
+    gap: 24px;
+    min-height: calc(100vh - 48px);
+    align-items: start;
+    grid-auto-rows: minmax(0, auto);
+    padding: 12px;
+}
+
+.controls {
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+}
+
+.maze {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+
+    justify-content: flex-start;
+    align-items: stretch;
+
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+.maze .row {
+    width: 100%;
+}
+
+#consoleLog {
+    width: 50%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 0 auto;
+}
+
+.mazeWrapper {
+    position: relative;
+    display: block;
+    line-height: 0;
+    margin: auto;
+}
+
+.mazeFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-top: 8px;
+    padding: 0 10px;
+    box-sizing: border-box;
+}
+
+.nav-btn {
+    position: absolute;
+    top: 50%;
+    margin: 0;
+    z-index: 2;
+}
+
+.nav-btn.prev {
+    left: 0px;
+    transform: translate(-120%, -50%);
+}
+
+.nav-btn.next {
+    right: 0px;
+    transform: translate(120%, -50%);
+}
+
+#mazeViewport {
+    width: 100%;
+    max-width: 1100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#mazeCanvas {
+    display: block;
+}

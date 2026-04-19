@@ -16,8 +16,16 @@
 int main(int argc, char** argv) {
 #ifdef USE_MPI
     MPI_Init(&argc, &argv);
-#endif
+    int rank = 0;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    if (rank == 0) {
+        StartWebServer();
+    } else {
+        RunMpiWorkerLoop();
+    }
+#else
     StartWebServer();
+#endif
 #ifdef USE_MPI
     MPI_Finalize();
 #endif

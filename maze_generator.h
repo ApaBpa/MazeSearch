@@ -6,6 +6,7 @@
 class MazeGenerator{
 public:
     MazeGenerator();
+    void Seed(uint32_t seed);
     void GeneratePrim(Maze& maze);
 
 private:

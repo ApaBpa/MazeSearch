@@ -15,11 +15,13 @@ Install dependencies
 `make clean && make maze_mpi`
 
 ## Run (Assuming Linux or WSL)
-`./maze_mpi`
+`MPI_NP=4 mpirun -np $MPI_NP ./maze_mpi`
 
 ..should produce this output:
 
 "Server running at http://localhost:8080"
+
+If you want to test different process counts, change `MPI_NP` (for example `MPI_NP=8`).
 
 ## Usage
 First, we need to generate a maze by clicking the 'generate' button.

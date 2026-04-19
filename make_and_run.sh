@@ -1,4 +1,5 @@
 make clean
 make maze_mpi
 echo "Build Complete..."
-./maze_mpi
+MPI_NP=${MPI_NP:-6}
+mpirun -np "$MPI_NP" ./maze_mpi
